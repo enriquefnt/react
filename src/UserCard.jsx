@@ -1,34 +1,40 @@
 // src/UserCard.jsx
 function UserCard({ nombre, puesto, alBorrar, alEditar }) {
   return (
-    <div className="bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-md transition-all p-6 flex flex-col h-full">
-      {/* Avatar circular con la inicial */}
-      <div className="flex items-center gap-4 mb-4">
-        <div className="w-12 h-12 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-xl uppercase">
-          {nombre.charAt(0)}
-        </div>
-        <div>
-          <h3 className="text-lg font-bold text-gray-800 leading-tight">{nombre}</h3>
-          <p className="text-sm text-blue-600 font-medium">{puesto}</p>
-        </div>
+    <div className="bg-white border border-gray-200 hover:border-blue-300 shadow-sm hover:shadow-md transition-all px-8 py-4 flex flex-col md:flex-row items-center gap-4">
+      
+      {/* Avatar */}
+      <div className="w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold shrink-0 shadow-sm">
+        {nombre.charAt(0).toUpperCase()}
       </div>
 
-      {/* Espaciador para empujar los botones al final si hay mucho texto */}
-      <div className="flex-grow"></div>
+      {/* Nombre */}
+      <div className="min-w-[200px] flex-1 w-full">
+        <p className="text-xs text-gray-400 font-bold md:hidden uppercase">Nombre</p>
+        <h3 className="text-gray-800 font-medium text-base">{nombre}</h3>
+      </div>
 
-      {/* Contenedor de Botones */}
-      <div className="flex gap-3 mt-6">
+      {/* Puesto */}
+      <div className="flex-1 w-full">
+        <p className="text-xs text-gray-400 font-bold md:hidden uppercase">Puesto</p>
+        <p className="text-gray-600 italic md:not-italic">{puesto}</p>
+      </div>
+
+      {/* Acciones */}
+      <div className="w-full md:w-40 flex justify-end gap-2 shrink-0">
         <button 
           onClick={alEditar}
-          className="flex-1 px-4 py-2 bg-gray-50 text-gray-700 text-sm font-semibold rounded-lg border border-gray-200 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-colors flex items-center justify-center gap-2"
+          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+          title="Editar"
         >
-          <span>✎</span> Editar
+          <span className="text-xl">✎</span>
         </button>
         <button 
           onClick={alBorrar}
-          className="flex-1 px-4 py-2 bg-gray-50 text-red-500 text-sm font-semibold rounded-lg border border-gray-200 hover:bg-red-50 hover:border-red-200 transition-colors flex items-center justify-center gap-2"
+          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+          title="Borrar"
         >
-          <span>🗑</span> Borrar
+          <span className="text-xl">🗑</span>
         </button>
       </div>
     </div>
