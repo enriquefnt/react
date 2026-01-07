@@ -11,12 +11,22 @@ const PUESTOS_VALIDOS = [
   "Otro"
 ];
 
+const capitalizarTexto = (texto) => {
+  return texto
+    .toLowerCase()
+    .split(' ')
+    .map(palabra => palabra.charAt(0).toUpperCase() + palabra.slice(1))
+    .join(' ');
+};
 function App() {
   const [usuarios, setUsuarios] = useState([]);
   const [nombre, setNombre] = useState('');
+  const [DNI, setDNI] = useState('');
   const [puesto, setPuesto] = useState('');
   const [editandoId, setEditandoId] = useState(null);
   const [busqueda, setBusqueda] = useState('');
+
+
 
   const API_URL = "http://localhost/api-equipo/index.php";
 
@@ -29,11 +39,28 @@ function App() {
 
   const manejarEnvio = async (e) => {
     e.preventDefault();
-    if (!nombre || !puesto) return;
-    const datos = { nombre, puesto };
-
+  
+    // 1. Limpieza, Formato y Validaciones
+    // Trim quita espacios, y luego capitalizamos (Pedro Torres)
+    const nombreFormateado = capitalizarTexto(nombre.trim());
+    const puestoLimpio = puesto.trim();
+  
+    if (nombreFormateado.length < 3) {
+      alert("El nombre es demasiado corto");
+      return;
+    }
+  
+    if (!puestoLimpio) {
+      alert("Por favor, seleccione un puesto");
+      return;
+    }
+  
+    // Usamos el nombre ya formateado para enviar a la DB
+    const datos = { nombre: nombreFormateado, puesto: puestoLimpio };
+  
     try {
       if (editandoId) {
+        // MODO EDICIÓN
         await fetch(API_URL, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
@@ -42,6 +69,7 @@ function App() {
         setUsuarios(usuarios.map(u => u.id === editandoId ? { ...u, ...datos } : u));
         setEditandoId(null);
       } else {
+        // MODO CREACIÓN
         const res = await fetch(API_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -52,13 +80,15 @@ function App() {
           setUsuarios([{ ...datos, id: resData.id }, ...usuarios]);
         }
       }
+      // Limpiar campos
       setNombre('');
       setPuesto('');
     } catch (err) {
-      console.error("Error en la operación:", err);
+      console.error("Error:", err);
     }
   };
 
+  
   const eliminarUsuario = async (id) => {
     try {
       await fetch(`${API_URL}?id=${id}`, { method: 'DELETE' });
@@ -100,22 +130,53 @@ function App() {
               onChange={(e) => setNombre(e.target.value)}
             />
           </div>
-          <div className="flex-1 w-full">
-            <label className="text-xs text-gray-400 uppercase font-bold ml-1">Puesto</label>
-            <input 
-              className="border-2 border-gray-100 p-2.5 rounded-xl w-full focus:border-blue-500 outline-none transition-all"
-              type="text" placeholder="Ej: Desarrollador" value={puesto}
-              onChange={(e) => setPuesto(e.target.value)}
-            />
-          </div>
+{/* Campo Puesto (Select) */}
+<div className="flex-1 w-full">
+  <label className="text-xs text-gray-400 uppercase font-bold ml-1">Puesto</label>
+  <select 
+    className="border-2 border-gray-100 p-2.5 rounded-xl w-full focus:border-blue-500 outline-none bg-white transition-all"
+    // Si el puesto actual no está en la lista de "fijos", mostramos "Otro" en el select
+    value={PUESTOS_VALIDOS.includes(puesto) ? puesto : (puesto === '' ? '' : 'Otro')}
+    onChange={(e) => {
+      if (e.target.value === 'Otro') {
+        setPuesto(''); // Limpiamos para que escriba en el nuevo input
+      } else {
+        setPuesto(e.target.value);
+      }
+    }}
+  >
+    <option value="" disabled>Seleccionar puesto...</option>
+    {PUESTOS_VALIDOS.map(p => (
+      p !== "Otro" && <option key={p} value={p}>{p}</option>
+    ))}
+    <option value="Otro">Otro (especificar...)</option>
+  </select>
+</div>
+
+{/* Campo Extra (Solo aparece si el puesto no está en la lista fija y no está vacío) */}
+{!PUESTOS_VALIDOS.includes(puesto) && (
+  <div className="flex-1 w-full animate-in fade-in slide-in-from-left-2 duration-300">
+    <label className="text-xs text-blue-600 uppercase font-bold ml-1">Especificar puesto</label>
+    <input 
+      className="border-2 border-blue-200 p-2.5 rounded-xl w-full focus:border-blue-500 outline-none bg-blue-50"
+      type="text" 
+      placeholder="¿Qué puesto ocupa?"
+      value={puesto}
+      onChange={(e) => setPuesto(e.target.value)}
+      autoFocus 
+    />
+  </div>
+)}
           <button 
-            type="submit" 
-            className={`px-8 py-3 rounded-xl font-bold text-white transition-all shadow-lg w-full md:w-auto ${
-              editandoId ? 'bg-orange-500 hover:bg-orange-600' : 'bg-blue-600 hover:bg-blue-700'
-            }`}
-          >
-            {editandoId ? 'Actualizar' : 'Añadir'}
-          </button>
+  disabled={nombre.length < 3 || !puesto}
+  className={`px-8 py-3 rounded-xl font-bold text-white transition-all shadow-lg w-full md:w-auto ${
+    (nombre.length < 3 || !puesto) 
+    ? 'bg-gray-300 cursor-not-allowed' 
+    : (editandoId ? 'bg-orange-500 hover:bg-orange-600' : 'bg-blue-600 hover:bg-blue-700')
+  }`}
+>
+  {editandoId ? 'Actualizar' : 'Añadir'}
+</button>
         </form>
 
         <div className="relative mb-8">
