@@ -1,75 +1,50 @@
 import { useState, useEffect } from 'react';
 import UserCard from './UserCard';
 
-const PUESTOS_VALIDOS = [
-  "Gerente", 
-  "Sub gerente", 
-  "Coordinador", 
-  "Jefe de sector", 
-  "Secretaria/o contable", 
-  "Secretario/a administrativa", 
-  "Otro"
-];
+const PUESTOS_VALIDOS = ["Gerente", "Sub gerente", "Coordinador", "Jefe de sector", "Secretaria/o contable", "Secretario/a administrativa"];
+const ROLES = ["Usuario", "Supervisor", "Administrador"];
 
 const capitalizarTexto = (texto) => {
-  return texto
-    .toLowerCase()
-    .split(' ')
-    .map(palabra => palabra.charAt(0).toUpperCase() + palabra.slice(1))
-    .join(' ');
+  if (!texto) return "";
+  return texto.toLowerCase().split(' ').map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(' ');
 };
+
 function App() {
   const [usuarios, setUsuarios] = useState([]);
   const [nombre, setNombre] = useState('');
-  const [DNI, setDNI] = useState('');
+  const [dni, setDni] = useState('');
+  const [email, setEmail] = useState('');
   const [puesto, setPuesto] = useState('');
+  const [rol, setRol] = useState('Usuario');
   const [editandoId, setEditandoId] = useState(null);
   const [busqueda, setBusqueda] = useState('');
-
-
+  const [mostrarModal, setMostrarModal] = useState(false);
 
   const API_URL = "http://localhost/api-equipo/index.php";
 
   useEffect(() => {
-    fetch(API_URL)
-      .then(res => res.json())
-      .then(data => setUsuarios(data))
-      .catch(err => console.error("Error cargando datos:", err));
+    fetch(API_URL).then(res => res.json()).then(data => setUsuarios(data)).catch(err => console.error(err));
   }, []);
 
   const manejarEnvio = async (e) => {
     e.preventDefault();
-  
-    // 1. Limpieza, Formato y Validaciones
-    // Trim quita espacios, y luego capitalizamos (Pedro Torres)
-    const nombreFormateado = capitalizarTexto(nombre.trim());
-    const puestoLimpio = puesto.trim();
-  
-    if (nombreFormateado.length < 3) {
-      alert("El nombre es demasiado corto");
-      return;
-    }
-  
-    if (!puestoLimpio) {
-      alert("Por favor, seleccione un puesto");
-      return;
-    }
-  
-    // Usamos el nombre ya formateado para enviar a la DB
-    const datos = { nombre: nombreFormateado, puesto: puestoLimpio };
-  
+    const datos = { 
+      nombre: capitalizarTexto(nombre.trim()), 
+      dni: dni.trim(), 
+      email: email.trim(), 
+      puesto: puesto.trim(), 
+      rol 
+    };
+
     try {
       if (editandoId) {
-        // MODO EDICIÓN
         await fetch(API_URL, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ ...datos, id: editandoId })
         });
         setUsuarios(usuarios.map(u => u.id === editandoId ? { ...u, ...datos } : u));
-        setEditandoId(null);
       } else {
-        // MODO CREACIÓN
         const res = await fetch(API_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -78,143 +53,146 @@ function App() {
         const resData = await res.json();
         if (resData.id) {
           setUsuarios([{ ...datos, id: resData.id }, ...usuarios]);
+          alert(`¡Éxito!\nUsuario: ${datos.dni}\nClave Temporal: ${resData.temp_password}`);
         }
       }
-      // Limpiar campos
-      setNombre('');
-      setPuesto('');
-    } catch (err) {
-      console.error("Error:", err);
-    }
+      cerrarModal();
+    } catch (err) { console.error(err); }
   };
 
-  
+  const cerrarModal = () => {
+    setMostrarModal(false);
+    setEditandoId(null);
+    setNombre(''); setDni(''); setEmail(''); setPuesto(''); setRol('Usuario');
+  };
+
+  const prepararEdicion = (u) => {
+    setEditandoId(u.id);
+    setNombre(u.nombre); setDni(u.dni); setEmail(u.email || ''); setPuesto(u.puesto); setRol(u.rol || 'Usuario');
+    setMostrarModal(true);
+  };
+
   const eliminarUsuario = async (id) => {
-    try {
-      await fetch(`${API_URL}?id=${id}`, { method: 'DELETE' });
-      setUsuarios(usuarios.filter(u => u.id !== id));
-    } catch (err) {
-      console.error("Error al borrar:", err);
-    }
+    if (!confirm("¿Eliminar empleado?")) return;
+    await fetch(`${API_URL}?id=${id}`, { method: 'DELETE' });
+    setUsuarios(usuarios.filter(u => u.id !== id));
   };
 
-  const prepararEdicion = (usuario) => {
-    setEditandoId(usuario.id);
-    setNombre(usuario.nombre);
-    setPuesto(usuario.puesto);
-  };
+  const usuariosFiltrados = usuarios.filter(u => 
+    u.nombre.toLowerCase().includes(busqueda.toLowerCase()) || 
+    u.dni.includes(busqueda)
+  );
 
-  // --- Lógica de filtrado (Debe estar AQUÍ, antes del return) ---
-  
-  const usuariosFiltrados = usuarios.filter((u) => {
-    const termino = busqueda.toLowerCase();
-    return (
-      u.nombre.toLowerCase().includes(termino) || 
-      u.puesto.toLowerCase().includes(termino)
-    );
-  });
-  
   return (
     <div className="min-h-screen bg-gray-100 p-4 md:p-8 font-sans">
-      <div className="max-w-6xl mx-auto"> 
-        <h1 className="text-3xl font-bold text-center mb-8 text-gray-800">
-          Gestor de Equipo Profesional
-        </h1>
+      <div className="max-w-6xl mx-auto">
         
-        <form onSubmit={manejarEnvio} className="bg-white p-6 rounded-2xl shadow-md mb-8 flex flex-col md:flex-row gap-4 items-end border border-gray-200">
-          <div className="flex-1 w-full">
-            <label className="text-xs text-gray-400 uppercase font-bold ml-1">Nombre</label>
-            <input 
-              className="border-2 border-gray-100 p-2.5 rounded-xl w-full focus:border-blue-500 outline-none transition-all"
-              type="text" placeholder="Ej: Juan Pérez" value={nombre}
-              onChange={(e) => setNombre(e.target.value)}
-            />
-          </div>
-{/* Campo Puesto (Select) */}
-<div className="flex-1 w-full">
-  <label className="text-xs text-gray-400 uppercase font-bold ml-1">Puesto</label>
-  <select 
-    className="border-2 border-gray-100 p-2.5 rounded-xl w-full focus:border-blue-500 outline-none bg-white transition-all"
-    // Si el puesto actual no está en la lista de "fijos", mostramos "Otro" en el select
-    value={PUESTOS_VALIDOS.includes(puesto) ? puesto : (puesto === '' ? '' : 'Otro')}
-    onChange={(e) => {
-      if (e.target.value === 'Otro') {
-        setPuesto(''); // Limpiamos para que escriba en el nuevo input
-      } else {
-        setPuesto(e.target.value);
-      }
-    }}
-  >
-    <option value="" disabled>Seleccionar puesto...</option>
-    {PUESTOS_VALIDOS.map(p => (
-      p !== "Otro" && <option key={p} value={p}>{p}</option>
-    ))}
-    <option value="Otro">Otro (especificar...)</option>
-  </select>
-</div>
-
-{/* Campo Extra (Solo aparece si el puesto no está en la lista fija y no está vacío) */}
-{!PUESTOS_VALIDOS.includes(puesto) && (
-  <div className="flex-1 w-full animate-in fade-in slide-in-from-left-2 duration-300">
-    <label className="text-xs text-blue-600 uppercase font-bold ml-1">Especificar puesto</label>
-    <input 
-      className="border-2 border-blue-200 p-2.5 rounded-xl w-full focus:border-blue-500 outline-none bg-blue-50"
-      type="text" 
-      placeholder="¿Qué puesto ocupa?"
-      value={puesto}
-      onChange={(e) => setPuesto(e.target.value)}
-      autoFocus 
-    />
-  </div>
-)}
+        {/* ENCABEZADO Y BOTÓN NUEVO */}
+        <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+          <h1 className="text-3xl font-bold text-gray-800 tracking-tight">Gestor de Equipo</h1>
           <button 
-  disabled={nombre.length < 3 || !puesto}
-  className={`px-8 py-3 rounded-xl font-bold text-white transition-all shadow-lg w-full md:w-auto ${
-    (nombre.length < 3 || !puesto) 
-    ? 'bg-gray-300 cursor-not-allowed' 
-    : (editandoId ? 'bg-orange-500 hover:bg-orange-600' : 'bg-blue-600 hover:bg-blue-700')
-  }`}
->
-  {editandoId ? 'Actualizar' : 'Añadir'}
-</button>
-        </form>
+            onClick={() => setMostrarModal(true)}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-2xl font-bold shadow-lg transition-all transform hover:scale-105"
+          >
+            + Nuevo Empleado
+          </button>
+        </div>
 
+        {/* BUSCADOR */}
         <div className="relative mb-8">
-          <span className="absolute inset-y-0 left-4 flex items-center text-gray-400">🔍</span>
+          <span className="absolute inset-y-0 left-4 flex items-center text-gray-400 text-xl">🔍</span>
           <input
-            type="text"
-            placeholder="Buscar por nombre o puesto..."
-            className="w-full pl-12 pr-4 py-3.5 bg-white border-2 border-gray-100 rounded-2xl shadow-sm focus:border-blue-500 outline-none transition-all"
-            value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
+            type="text" placeholder="Buscar por nombre o DNI..."
+            className="w-full pl-14 pr-6 py-4 bg-white border-none rounded-2xl shadow-sm focus:ring-2 focus:ring-blue-500 outline-none text-lg transition-all"
+            value={busqueda} onChange={(e) => setBusqueda(e.target.value)}
           />
         </div>
 
-        <div className="mt-10">
-          <div className="sticky top-0 z-10 bg-gray-100 pb-2 hidden md:block">
-            <div className="bg-white border-b-2 border-gray-200 px-8 py-3 rounded-t-xl flex items-center text-xs font-extrabold text-gray-400 uppercase tracking-wider">
-              <div className="w-10 mr-4"></div>
-              <div className="min-w-[200px] flex-1">Nombre</div>
-              <div className="flex-1">Puesto</div>
-              <div className="w-40 text-right">Acciones</div>
-            </div>
+        {/* TABLA DE USUARIOS */}
+        <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden">
+          <div className="hidden md:flex bg-gray-50 border-b border-gray-100 px-8 py-4 text-xs font-black text-gray-400 uppercase tracking-widest">
+            <div className="w-12 mr-4"></div>
+            <div className="w-32">DNI</div>
+            <div className="flex-1">Nombre y Email</div>
+            <div className="flex-1">Puesto / Rol</div>
+            <div className="w-32 text-right">Acciones</div>
           </div>
 
-          <div className="flex flex-col gap-2">
+          <div className="divide-y divide-gray-100">
             {usuariosFiltrados.map(u => (
               <UserCard 
-                key={u.id} 
-                nombre={u.nombre} 
-                puesto={u.puesto} 
-                alBorrar={() => eliminarUsuario(u.id)}
-                alEditar={() => prepararEdicion(u)}
+                key={u.id} dni={u.dni} nombre={u.nombre} puesto={u.puesto} 
+                alBorrar={() => eliminarUsuario(u.id)} alEditar={() => prepararEdicion(u)} 
               />
             ))}
           </div>
         </div>
 
-        {usuarios.length > 0 && usuariosFiltrados.length === 0 && (
-          <p className="text-center text-gray-400 mt-10 italic">No se encontraron empleados.</p>
+        {/* MODAL (Sólo se renderiza si mostrarModal es true) */}
+        {mostrarModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm" onClick={cerrarModal} />
+            
+            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl z-10 overflow-hidden">
+              <div className="px-8 py-6 border-b border-gray-100 flex justify-between items-center">
+                <h3 className="text-xl font-bold text-gray-800">{editandoId ? 'Editar Perfil' : 'Nuevo Acceso'}</h3>
+                <button onClick={cerrarModal} className="text-3xl text-gray-300 hover:text-gray-500">&times;</button>
+              </div>
+
+              <form onSubmit={manejarEnvio} className="p-8 grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="md:col-span-1">
+                  <label className="text-xs font-bold text-gray-400 uppercase ml-1">DNI (Usuario)</label>
+                  <input className="w-full border-2 border-gray-100 p-3 rounded-xl focus:border-blue-500 outline-none" 
+                    type="text" value={dni} onChange={(e) => setDni(e.target.value.replace(/\D/g,'').slice(0,8))} required />
+                </div>
+
+                <div className="md:col-span-1">
+                  <label className="text-xs font-bold text-gray-400 uppercase ml-1">Email Personal</label>
+                  <input className="w-full border-2 border-gray-100 p-3 rounded-xl focus:border-blue-500 outline-none" 
+                    type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="text-xs font-bold text-gray-400 uppercase ml-1">Nombre Completo</label>
+                  <input className="w-full border-2 border-gray-100 p-3 rounded-xl focus:border-blue-500 outline-none" 
+                    type="text" value={nombre} onChange={(e) => setNombre(e.target.value)} required />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-gray-400 uppercase ml-1">Puesto</label>
+                  <select className="w-full border-2 border-gray-100 p-3 rounded-xl focus:border-blue-500 outline-none bg-white"
+                    value={PUESTOS_VALIDOS.includes(puesto) ? puesto : (puesto === '' ? '' : 'Otro')}
+                    onChange={(e) => e.target.value === 'Otro' ? setPuesto('') : setPuesto(e.target.value)}>
+                    <option value="" disabled>Seleccionar...</option>
+                    {PUESTOS_VALIDOS.map(p => <option key={p} value={p}>{p}</option>)}
+                    <option value="Otro">Otro...</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-gray-400 uppercase ml-1">Rol de Acceso</label>
+                  <select className="w-full border-2 border-gray-100 p-3 rounded-xl focus:border-blue-500 outline-none bg-white"
+                    value={rol} onChange={(e) => setRol(e.target.value)}>
+                    {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+                  </select>
+                </div>
+
+                {!PUESTOS_VALIDOS.includes(puesto) && (
+                  <div className="md:col-span-2">
+                    <input className="w-full border-2 border-blue-100 p-3 rounded-xl bg-blue-50 focus:border-blue-500 outline-none" 
+                      placeholder="Especifique el puesto..." type="text" value={puesto} onChange={(e) => setPuesto(e.target.value)} autoFocus />
+                  </div>
+                )}
+
+                <div className="md:col-span-2 flex gap-3 mt-4">
+                  <button type="button" onClick={cerrarModal} className="flex-1 py-4 text-gray-400 font-bold hover:bg-gray-50 rounded-2xl transition-all">Cancelar</button>
+                  <button type="submit" className="flex-[2] py-4 bg-blue-600 text-white font-bold rounded-2xl shadow-lg hover:bg-blue-700 transition-all">
+                    {editandoId ? 'Guardar Cambios' : 'Generar Acceso'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
         )}
       </div>
     </div>
