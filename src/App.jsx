@@ -78,11 +78,21 @@ function App() {
     setUsuarios(usuarios.filter(u => u.id !== id));
   };
 
-  const usuariosFiltrados = usuarios.filter(u => 
-    u.nombre.toLowerCase().includes(busqueda.toLowerCase()) || 
-    u.dni.includes(busqueda)
-  );
-
+  const usuariosFiltrados = usuarios.filter((u) => {
+    const termino = busqueda.toLowerCase();
+    
+    // Creamos un solo string con todos los datos del usuario para buscar en él
+    const contenidoBusqueda = `
+      ${u.nombre} 
+      ${u.puesto} 
+      ${u.dni} 
+      ${u.email} 
+      ${u.rol}
+    `.toLowerCase();
+  
+    return contenidoBusqueda.includes(termino);
+  });
+  console.log(usuarios[0])
   return (
     <div className="min-h-screen bg-gray-100 p-4 md:p-8 font-sans">
       <div className="max-w-6xl mx-auto">
@@ -119,10 +129,16 @@ function App() {
           </div>
 
           <div className="divide-y divide-gray-100">
-            {usuariosFiltrados.map(u => (
+          {usuariosFiltrados.map(u => (
               <UserCard 
-                key={u.id} dni={u.dni} nombre={u.nombre} puesto={u.puesto} 
-                alBorrar={() => eliminarUsuario(u.id)} alEditar={() => prepararEdicion(u)} 
+                key={u.id} 
+                dni={u.dni} 
+                nombre={u.nombre} 
+                email={u.email}    /* <--- AGREGAR ESTA LÍNEA */
+                puesto={u.puesto} 
+                rol={u.rol}        /* <--- AGREGAR ESTA LÍNEA */
+                alBorrar={() => eliminarUsuario(u.id)} 
+                alEditar={() => prepararEdicion(u)} 
               />
             ))}
           </div>
