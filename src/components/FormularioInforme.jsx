@@ -53,7 +53,7 @@ const FormularioInforme = ({ usuario }) => {
   return (
     <div className="bg-white p-8 rounded-3xl shadow-lg border border-gray-100 max-w-2xl mx-auto">
       <h2 className="text-2xl font-bold text-gray-800 mb-2">Informe Diario de Tareas</h2>
-      <p className="text-gray-400 text-sm mb-6">Fecha: {new Date().toLocaleDateString()} - Usuario: {usuario.nombre}</p>
+      <p className="text-gray-400 text-sm mb-6">Fecha: {new Date().toLocaleDateString('es-AR')} - Usuario: {usuario.nombre}</p>
 
       {enviado && (
         <div className="bg-green-100 text-green-700 p-4 rounded-xl mb-6 text-center font-bold">

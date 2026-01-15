@@ -31,26 +31,48 @@ const DashboardAdmin = ({ usuarios, setUsuarios, API_URL }) => {
 
     try {
       if (editandoId) {
-        await fetch(API_URL, {
+        // --- EDITAR USUARIO ---
+        const res = await fetch(API_URL, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ ...datos, id: editandoId })
         });
-        setUsuarios(usuarios.map(u => u.id === editandoId ? { ...u, ...datos } : u));
+        
+        if (res.ok) {
+          setUsuarios(usuarios.map(u => u.id === editandoId ? { ...u, ...datos } : u));
+          cerrarModal();
+        }
       } else {
-        const res = await fetch(API_URL, {
+        // --- CREAR USUARIO NUEVO ---
+        const res = await fetch("http://localhost/api-equipo/crear_usuario.php", {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(datos)
         });
+        
         const resData = await res.json();
-        if (resData.id) {
-          setUsuarios([{ ...datos, id: resData.id }, ...usuarios]);
-          alert(`¡Éxito!\nUsuario: ${datos.dni}\nClave Temporal: ${resData.temp_password}`);
+        
+        // Verificamos el status "success" que envía tu PHP
+        if (resData.status === "success") {
+          // Agregamos a la lista con id y el flag de cambio_password en 1 (naranja/pendiente)
+          const nuevoUsuarioLista = { 
+            ...datos, 
+            id: resData.id, 
+            cambio_password: 1 
+          };
+          
+          setUsuarios([nuevoUsuarioLista, ...usuarios]);
+          
+          alert(`¡Éxito!\nUsuario: ${datos.dni}\nEmail enviado a: ${datos.email}\nClave Temporal: ${resData.temp_password}`);
+          cerrarModal();
+        } else {
+          alert("Error: " + (resData.message || "No se pudo crear el usuario"));
         }
       }
-      cerrarModal();
-    } catch (err) { console.error(err); }
+    } catch (err) { 
+      console.error(err); 
+      alert("Error de conexión con el servidor");
+    }
   };
 
   const cerrarModal = () => {
@@ -67,8 +89,10 @@ const DashboardAdmin = ({ usuarios, setUsuarios, API_URL }) => {
 
   const eliminarUsuario = async (id) => {
     if (!confirm("¿Eliminar empleado?")) return;
-    await fetch(`${API_URL}?id=${id}`, { method: 'DELETE' });
-    setUsuarios(usuarios.filter(u => u.id !== id));
+    try {
+      await fetch(`${API_URL}?id=${id}`, { method: 'DELETE' });
+      setUsuarios(usuarios.filter(u => u.id !== id));
+    } catch (err) { console.error(err); }
   };
 
   const usuariosFiltrados = usuarios.filter(u => {
@@ -100,7 +124,7 @@ const DashboardAdmin = ({ usuarios, setUsuarios, API_URL }) => {
       <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden">
         <div className="hidden md:flex bg-gray-50 border-b border-gray-100 px-8 py-4 text-xs font-black text-gray-400 uppercase tracking-widest">
           <div className="w-12 mr-4"></div>
-          <div className="w-32">DNI</div>
+          <div className="w-32">DNI / Estado</div>
           <div className="flex-1">Nombre y Email</div>
           <div className="flex-1">Puesto / Rol</div>
           <div className="w-32 text-right">Acciones</div>
@@ -108,13 +132,21 @@ const DashboardAdmin = ({ usuarios, setUsuarios, API_URL }) => {
         <div className="divide-y divide-gray-100">
           {usuariosFiltrados.map(u => (
             <UserCard 
-              key={u.id} dni={u.dni} nombre={u.nombre} email={u.email} rol={u.rol} puesto={u.puesto} 
-              alBorrar={() => eliminarUsuario(u.id)} alEditar={() => prepararEdicion(u)} 
+              key={u.id} 
+              dni={u.dni} 
+              nombre={u.nombre} 
+              email={u.email} 
+              rol={u.rol} 
+              puesto={u.puesto} 
+              cambio_password={u.cambio_password} // Pasamos el estado de la clave
+              alBorrar={() => eliminarUsuario(u.id)} 
+              alEditar={() => prepararEdicion(u)} 
             />
           ))}
         </div>
       </div>
 
+      {/* MODAL (Sin cambios en estructura, solo en la lógica de envío arriba) */}
       {mostrarModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm" onClick={cerrarModal} />
