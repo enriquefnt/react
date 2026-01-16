@@ -1,3 +1,4 @@
+import { Pencil, Trash2 } from 'lucide-react';
 // AGREGA 'cambio_password' a la lista de props aquí:
 function UserCard({ dni, nombre, email, puesto, rol, cambio_password, alBorrar, alEditar }) {
   return (
@@ -37,9 +38,21 @@ function UserCard({ dni, nombre, email, puesto, rol, cambio_password, alBorrar, 
         </div>
       </div>
 
-      <div className="w-32 flex justify-end gap-2">
-        <button onClick={alEditar} className="p-2 text-blue-400 hover:bg-blue-50 rounded-lg transition-colors">✏️</button>
-        <button onClick={alBorrar} className="p-2 text-red-300 hover:bg-red-50 rounded-lg transition-colors">🗑️</button>
+      <div className="flex justify-end gap-2">
+        <button 
+          onClick={alEditar}
+          className="p-2 text-blue-500 hover:bg-blue-50 rounded-xl transition-colors"
+          title="Editar"
+        >
+          <Pencil size={18} />
+        </button>
+        <button 
+          onClick={alBorrar}
+          className="p-2 text-red-500 hover:bg-red-50 rounded-xl transition-colors"
+          title="Eliminar"
+        >
+          <Trash2 size={18} />
+        </button>
       </div>
     </div>
   );
