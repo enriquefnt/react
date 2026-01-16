@@ -24,13 +24,26 @@ function App() {
   };
 
   useEffect(() => {
-    const sesion = localStorage.getItem('usuario');
-    if (sesion) {
-      const user = JSON.parse(sesion);
-      setUsuarioLogueado(user);
-      if (user.rol === 'Administrador') cargarUsuarios();
-    }
-  }, []);
+    // Función que verifica la validez de la sesión
+    const verificarSesion = () => {
+      const sesion = localStorage.getItem('usuario');
+      const loginTime = localStorage.getItem('loginTimestamp');
+  
+      if (sesion && loginTime) {
+        const ahora = new Date().getTime();
+        const transcurrido = ahora - parseInt(loginTime);
+  
+        if (transcurrido > TIEMPO_EXPIRACION) {
+          alert("Su sesión ha expirado por seguridad (30 min). Por favor, ingrese nuevamente.");
+          cerrarSesion();
+        }
+      }
+    };
+    // Y luego revisar cada 1 minuto (60000 ms)
+  const intervalo = setInterval(verificarSesion, 60000);
+
+  return () => clearInterval(intervalo);
+}, [usuarioLogueado]); // Se reinicia el efecto cuando cambia el usuario
 
   const cargarUsuarios = async () => {
     try {
@@ -41,15 +54,21 @@ function App() {
   };
 
   const loginExitoso = (user) => {
+    const ahora = new Date().getTime();
     setUsuarioLogueado(user);
+    
+    // Guardamos los datos del usuario y la hora de inicio
     localStorage.setItem('usuario', JSON.stringify(user));
+    localStorage.setItem('loginTimestamp', ahora.toString());
+    
     if (user.rol === 'Administrador') cargarUsuarios();
     setVistaActual('inicio');
   };
-
+  
   const cerrarSesion = () => {
     setUsuarioLogueado(null);
     localStorage.removeItem('usuario');
+    localStorage.removeItem('loginTimestamp'); // Limpiamos el tiempo
     setVistaActual('inicio');
   };
 

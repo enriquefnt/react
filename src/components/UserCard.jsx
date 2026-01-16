@@ -1,57 +1,78 @@
-import { Pencil, Trash2 } from 'lucide-react';
-// AGREGA 'cambio_password' a la lista de props aquí:
+import { Pencil, Trash2, ShieldCheck, User, UserCog } from 'lucide-react';
+
 function UserCard({ dni, nombre, email, puesto, rol, cambio_password, alBorrar, alEditar }) {
+  
+  // Función interna para elegir el icono del avatar según el rol
+  const IconoRol = () => {
+    if (rol === 'Administrador') return <ShieldCheck size={18} />;
+    if (rol === 'Supervisor') return <UserCog size={18} />;
+    return <User size={18} />;
+  };
+
   return (
-    <div className="bg-white px-8 py-4 flex flex-col md:flex-row items-center gap-4 hover:bg-gray-50 transition-all">
+    <div className="bg-white px-8 py-5 flex flex-col md:flex-row items-center gap-6 hover:bg-gray-50/80 transition-all border-b border-gray-50 last:border-none group">
       
-      {/* Indicador de Estado (Puntito) */}
-      <div className="flex items-center" title={cambio_password == 0 ? "Cuenta Activada" : "Pendiente de Activación"}>
-        <div className={`w-3 h-3 rounded-full ${cambio_password == 0 ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'bg-amber-500 animate-pulse'}`}></div>
+      {/* Indicador de Estado (Puntito con sombra dinámica) */}
+      <div className="flex items-center shrink-0" title={cambio_password == 0 ? "Cuenta Activada" : "Pendiente de Activación"}>
+        <div className={`w-2.5 h-2.5 rounded-full ${
+          cambio_password == 0 
+            ? 'bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.4)]' 
+            : 'bg-amber-500 animate-pulse shadow-[0_0_10px_rgba(245,158,11,0.4)]'
+        }`}></div>
       </div>
 
-      <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-700 text-white rounded-full flex items-center justify-center font-bold shadow-sm">
-        {nombre ? nombre[0] : '?'}
+      {/* Avatar con Icono de Rol */}
+      <div className="relative shrink-0">
+        <div className="w-12 h-12 bg-gradient-to-br from-slate-700 to-slate-900 text-white rounded-2xl flex items-center justify-center font-black shadow-md transform group-hover:rotate-3 transition-transform">
+          {nombre ? nombre[0].toUpperCase() : '?'}
+        </div>
+        <div className="absolute -bottom-1 -right-1 bg-white p-1 rounded-lg shadow-sm border border-gray-100 text-blue-600">
+           <IconoRol />
+        </div>
       </div>
 
-      <div className="w-32 shrink-0 font-mono text-sm text-gray-500">
+      {/* DNI - Con fuente mono para alineación perfecta */}
+      <div className="w-24 shrink-0 font-mono text-xs font-black text-gray-400 tracking-tighter">
         {dni}
       </div>
 
+      {/* Info Principal */}
       <div className="flex-1 min-w-0">
-        <p className="font-bold text-gray-800 truncate">{nombre}</p>
-        <p className="text-xs text-gray-400 truncate">{email}</p>
+        <p className="font-black text-gray-800 truncate text-sm uppercase tracking-tight">{nombre}</p>
+        <p className="text-xs text-gray-400 truncate font-medium">{email}</p>
       </div>
 
-      <div className="flex-1">
-        <p className="text-sm font-medium text-gray-700">{puesto}</p>
-        <div className="flex items-center gap-2">
-            <span className={`text-[10px] uppercase px-2 py-0.5 rounded-full font-bold ${
+      {/* Puesto y Rol */}
+      <div className="flex-1 hidden lg:block">
+        <p className="text-xs font-black text-gray-700 uppercase tracking-tighter">{puesto}</p>
+        <div className="flex items-center gap-2 mt-1">
+            <span className={`text-[9px] uppercase px-2 py-0.5 rounded-lg font-black tracking-widest ${
             rol === 'Administrador' ? 'bg-purple-100 text-purple-600' : 
-            rol === 'Supervisor' ? 'bg-orange-100 text-orange-600' : 'bg-gray-100 text-gray-600'
+            rol === 'Supervisor' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-500'
             }`}>
             {rol}
             </span>
-            {/* Texto de estado opcional */}
-            <span className="text-[9px] font-black uppercase text-gray-300">
-                {cambio_password == 0 ? '✓ Activo' : '⌛ Pendiente'}
+            <span className={`text-[9px] font-black uppercase ${cambio_password == 0 ? 'text-green-500' : 'text-amber-500'}`}>
+                {cambio_password == 0 ? '● Activo' : '● Pendiente'}
             </span>
         </div>
       </div>
 
-      <div className="flex justify-end gap-2">
+      {/* Botones de Acción (aparecen más claros al hacer hover en la fila) */}
+      <div className="flex justify-end gap-1 opacity-80 group-hover:opacity-100 transition-opacity">
         <button 
           onClick={alEditar}
-          className="p-2 text-blue-500 hover:bg-blue-50 rounded-xl transition-colors"
-          title="Editar"
+          className="p-2.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
+          title="Editar Perfil"
         >
-          <Pencil size={18} />
+          <Pencil size={18} strokeWidth={2.5} />
         </button>
         <button 
           onClick={alBorrar}
-          className="p-2 text-red-500 hover:bg-red-50 rounded-xl transition-colors"
-          title="Eliminar"
+          className="p-2.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"
+          title="Eliminar de la Empresa"
         >
-          <Trash2 size={18} />
+          <Trash2 size={18} strokeWidth={2.5} />
         </button>
       </div>
     </div>
