@@ -17,7 +17,7 @@ function App() {
 
   // DATOS DEL PROYECTO PARA EL FOOTER
   const PROYECTO_INFO = {
-    version: "1.2.5",
+    version: "1.0.5",
     anio: new Date().getFullYear(),
     referente: "Tu Nombre o Referente",
     email: "soporte@aerosamec.com"

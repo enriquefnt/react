@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
+import { Search, Calendar, User, ClipboardList, MessageSquare, CheckCircle2, Loader2 } from 'lucide-react';
 
 const VistaSupervisor = () => {
   const [informes, setInformes] = useState([]);
   const [filtro, setFiltro] = useState('');
   const [cargando, setCargando] = useState(true);
+  const [guardandoId, setGuardandoId] = useState(null);
 
   useEffect(() => {
     consultarAPI();
@@ -22,14 +24,18 @@ const VistaSupervisor = () => {
   };
 
   const guardarNota = async (id, nota) => {
+    setGuardandoId(id);
     try {
       await fetch("http://localhost/api-equipo/actualizar_obs_supervisor.php", {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, nota })
       });
+      // Opcional: Pequeña pausa visual para mostrar el check de éxito
+      setTimeout(() => setGuardandoId(null), 1000);
     } catch (err) {
       alert("Error al conectar con el servidor");
+      setGuardandoId(null);
     }
   };
 
@@ -48,93 +54,143 @@ const VistaSupervisor = () => {
     );
   });
 
-  if (cargando) return <div className="p-20 text-center font-bold text-gray-400">Cargando informes...</div>;
+  if (cargando) return (
+    <div className="flex flex-col items-center justify-center p-20 gap-4 text-gray-400">
+      <Loader2 className="animate-spin text-blue-500" size={40} />
+      <p className="font-black uppercase text-xs tracking-[0.2em]">Sincronizando Informes...</p>
+    </div>
+  );
 
   return (
-    <div className="animate-in fade-in duration-500">
-      <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-        <h2 className="text-2xl font-bold text-gray-800 text-center md:text-left">
-          Extracto de Actividad <span className="text-blue-500 text-sm block md:inline md:ml-2">Control General</span>
-        </h2>
-        <div className="relative w-full md:w-96">
+    <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 max-w-full">
+      {/* ENCABEZADO Y BUSCADOR */}
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-6">
+        <div>
+          <h2 className="text-3xl font-black text-gray-800 tracking-tight flex items-center gap-3">
+            <ClipboardList className="text-blue-600" size={32} />
+            Extracto de Actividad
+          </h2>
+          <p className="text-[10px] font-black text-blue-500 uppercase tracking-[0.3em] mt-1 ml-1">Auditoría y Control de Equipo</p>
+        </div>
+
+        <div className="relative w-full lg:w-96 group">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-blue-500 transition-colors" size={20} />
           <input 
             type="text" 
-            placeholder="Buscar por nombre, fecha (dd/mm/aaaa) o tarea..."
-            className="w-full pl-5 pr-4 py-3 bg-white border-2 border-gray-100 rounded-2xl outline-none focus:border-blue-500 transition-all shadow-sm"
+            placeholder="Buscar por empleado, fecha o tarea..."
+            className="w-full pl-12 pr-6 py-4 bg-white border-2 border-gray-50 rounded-[20px] outline-none focus:border-blue-500 focus:bg-white transition-all shadow-sm font-bold text-sm text-gray-700 placeholder:text-gray-300"
             onChange={(e) => setFiltro(e.target.value)}
           />
         </div>
       </div>
 
-      <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden">
+      {/* TABLA DE INFORMES */}
+      <div className="bg-white rounded-[35px] shadow-sm border border-gray-100 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+          <table className="w-full border-collapse">
             <thead>
-              <tr className="bg-gray-50 border-b border-gray-100 text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                <th className="p-5">Fecha y Hora</th>
-                <th className="p-5">Empleado</th>
-                <th className="p-5">Tareas Realizadas</th>
-                <th className="p-5">Observaciones Empleado</th>
-                <th className="p-5">Nota Supervisor</th>
+              <tr className="bg-gray-50/50 border-b border-gray-50 text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                <th className="p-6 text-left">Fecha / Hora</th>
+                <th className="p-6 text-left">Responsable</th>
+                <th className="p-6 text-left">Tareas Realizadas</th>
+                <th className="p-6 text-left">Observaciones Empleado</th>
+                <th className="p-6 text-left">Feedback Supervisor</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-gray-50">
               {informesFiltrados.length > 0 ? (
                 informesFiltrados.map(inf => (
-                  <tr key={inf.id} className="hover:bg-blue-50/20 transition-colors">
-                    {/* COLUMNA 1: FECHA FORZADA DD/MM/AAAA */}
-                    <td className="p-5 text-sm">
-                      <div className="font-bold text-gray-800">
-                        {new Date(inf.fecha_hora).toLocaleDateString('es-AR', {day:'2-digit', month:'2-digit', year:'numeric'})}
-                      </div>
-                      <div className="text-xs text-gray-400">
-                        {new Date(inf.fecha_hora).toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit'})} hs
+                  <tr key={inf.id} className="hover:bg-blue-50/30 transition-all group">
+                    
+                    {/* FECHA Y HORA */}
+                    <td className="p-6 whitespace-nowrap">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2.5 bg-gray-50 rounded-xl text-blue-500 group-hover:bg-blue-500 group-hover:text-white transition-colors">
+                            <Calendar size={18} />
+                        </div>
+                        <div>
+                            <div className="font-black text-gray-800 text-sm tracking-tighter">
+                                {new Date(inf.fecha_hora).toLocaleDateString('es-AR', {day:'2-digit', month:'2-digit', year:'numeric'})}
+                            </div>
+                            <div className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter leading-none">
+                                {new Date(inf.fecha_hora).toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit'})} HS
+                            </div>
+                        </div>
                       </div>
                     </td>
 
-                    {/* COLUMNA 2: EMPLEADO */}
-                    <td className="p-5">
-                      <p className="font-bold text-gray-800 text-sm leading-tight">{inf.nombre}</p>
-                      <span className="text-[10px] text-blue-500 font-bold uppercase">{inf.rol}</span>
+                    {/* EMPLEADO (AVATAR + NOMBRE) */}
+                    <td className="p-6">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-black text-xs border-2 border-white shadow-sm shrink-0">
+                            {inf.nombre?.[0].toUpperCase()}
+                        </div>
+                        <div className="min-w-0">
+                            <p className="font-black text-gray-800 text-sm leading-tight truncate uppercase tracking-tighter">{inf.nombre}</p>
+                            <span className="text-[9px] text-blue-500 font-black uppercase tracking-widest">{inf.rol}</span>
+                        </div>
+                      </div>
                     </td>
 
-                    {/* COLUMNA 3: TAREAS */}
-                    <td className="p-5">
-                      <div className="flex flex-wrap gap-1">
+                    {/* TAREAS (BADGES) */}
+                    <td className="p-6">
+                      <div className="flex flex-wrap gap-1.5 max-w-xs">
                         {inf.tareas.split(',').map((t, i) => (
-                          <span key={i} className="bg-blue-50 text-blue-600 px-2 py-1 rounded-lg text-[10px] font-bold border border-blue-100 uppercase">
+                          <span key={i} className="bg-white text-gray-600 px-3 py-1 rounded-lg text-[9px] font-black border border-gray-100 uppercase tracking-tighter shadow-sm">
                             {t.trim()}
                           </span>
                         ))}
                       </div>
                     </td>
 
-                    {/* COLUMNA 4: OBSERVACIONES EMPLEADO (La que se había perdido) */}
-                    <td className="p-5 text-sm text-gray-500 italic max-w-xs">
-                      {inf.observaciones || <span className="text-gray-300">Sin comentarios</span>}
+                    {/* OBSERVACIONES EMPLEADO */}
+                    <td className="p-6">
+                        <div className="flex items-start gap-2 max-w-xs italic text-gray-500 text-xs">
+                            <MessageSquare size={14} className="shrink-0 text-gray-300 mt-0.5" />
+                            <p className="leading-relaxed">
+                                {inf.observaciones || <span className="text-gray-300 font-normal">Sin comentarios adicionales</span>}
+                            </p>
+                        </div>
                     </td>
 
-                    {/* COLUMNA 5: NOTA SUPERVISOR */}
-                    <td className="p-5">
-                      <textarea 
-                        className="w-full p-3 text-xs border border-gray-100 rounded-xl focus:border-blue-300 outline-none bg-gray-50/50 focus:bg-white transition-all resize-none"
-                        placeholder="Escribir feedback..."
-                        rows="2"
-                        defaultValue={inf.obs_supervisor}
-                        onBlur={(e) => guardarNota(inf.id, e.target.value)}
-                      />
+                    {/* NOTA SUPERVISOR CON INDICADOR DE GUARDADO */}
+                    <td className="p-6 min-w-[250px]">
+                      <div className="relative">
+                        <textarea 
+                          className="w-full p-4 text-xs font-bold border-2 border-gray-50 rounded-2xl focus:border-blue-500 outline-none bg-gray-50/30 focus:bg-white transition-all resize-none text-gray-700 placeholder:font-normal placeholder:text-gray-300"
+                          placeholder="Añadir feedback técnico..."
+                          rows="2"
+                          defaultValue={inf.obs_supervisor}
+                          onBlur={(e) => guardarNota(inf.id, e.target.value)}
+                        />
+                        <div className="absolute bottom-3 right-3">
+                            {guardandoId === inf.id ? (
+                                <Loader2 size={16} className="text-blue-500 animate-spin" />
+                            ) : inf.obs_supervisor ? (
+                                <CheckCircle2 size={16} className="text-green-500 opacity-50" />
+                            ) : null}
+                        </div>
+                      </div>
                     </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan="5" className="p-20 text-center text-gray-400">No se encontraron resultados</td>
+                  <td colSpan="5" className="p-32 text-center">
+                    <div className="flex flex-col items-center gap-2">
+                        <Search size={40} className="text-gray-100" />
+                        <p className="text-gray-400 font-black uppercase text-xs tracking-widest">No hay registros para mostrar</p>
+                    </div>
+                  </td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
       </div>
+      
+      {/* ESPACIADOR PARA EL FOOTER FIJO */}
+      <div className="h-24"></div>
     </div>
   );
 };
