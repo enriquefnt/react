@@ -1,0 +1,17 @@
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /aerosamec-app/
+
+  # Si la petición es para el index.html, no hagas nada más
+  RewriteRule ^index\.html$ - [L]
+
+  # Si el archivo pedido no existe físicamente...
+  RewriteCond %{REQUEST_FILENAME} !-f
+  # ...y la carpeta pedida tampoco existe físicamente...
+  RewriteCond %{REQUEST_FILENAME} !-d
+  # ...y no es un archivo de assets (opcional pero ayuda)
+  RewriteCond %{REQUEST_URI} !(\.js|\.css|\.png|\.jpg|\.svg)$
+  
+  # Entonces manda la petición al index.html que está en esta subcarpeta
+  RewriteRule . /aerosamec-app/index.html [L]
+</IfModule>

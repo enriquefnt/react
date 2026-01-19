@@ -8,7 +8,11 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { LogOut, Users, FileText, BarChart3, ChevronLeft, Mail, Info } from 'lucide-react';
 
 function App() {
-  const [usuarioLogueado, setUsuarioLogueado] = useState(null);
+  //const [usuarioLogueado, setUsuarioLogueado] = useState(null);
+  const [usuarioLogueado, setUsuarioLogueado] = useState(() => {
+    const sesionGuardada = localStorage.getItem('usuario');
+    return sesionGuardada ? JSON.parse(sesionGuardada) : null;
+  });
   const [usuarios, setUsuarios] = useState([]);
   const [vistaActual, setVistaActual] = useState('inicio'); 
   const TIEMPO_EXPIRACION = 30 * 60 * 1000;
@@ -185,8 +189,12 @@ function App() {
     );
   };
 
+ 
+  // Agrega esta constante justo antes del return final
+  const baseVirtual = import.meta.env.DEV ? "/" : "/aerosamec-app";
+
   return (
-    <Router>
+    <Router basename={baseVirtual}>
       <Routes>
         <Route path="/cambiar-password" element={<CambiarPassword />} />
         <Route path="/" element={!usuarioLogueado ? <Login onLogin={loginExitoso} /> : <LayoutPrincipal />} />
