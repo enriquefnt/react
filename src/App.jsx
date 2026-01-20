@@ -8,27 +8,37 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { LogOut, Users, FileText, BarChart3, ChevronLeft, Mail, Info } from 'lucide-react';
 
 function App() {
-  //const [usuarioLogueado, setUsuarioLogueado] = useState(null);
+  // --- BLINDAJE 1: PERSISTENCIA DE ESTADO ---
+  // Inicializamos el estado leyendo directamente de localStorage
   const [usuarioLogueado, setUsuarioLogueado] = useState(() => {
     const sesionGuardada = localStorage.getItem('usuario');
-    return sesionGuardada ? JSON.parse(sesionGuardada) : null;
+    if (sesionGuardada) {
+      try {
+        return JSON.parse(sesionGuardada);
+      } catch (e) {
+        return null;
+      }
+    }
+    return null;
   });
+
   const [usuarios, setUsuarios] = useState([]);
   const [vistaActual, setVistaActual] = useState('inicio'); 
   const TIEMPO_EXPIRACION = 30 * 60 * 1000;
   
   const API_URL = "http://localhost/api-equipo/index.php";
 
-  // DATOS DEL PROYECTO PARA EL FOOTER
+  // --- BLINDAJE 2: BASE DE RUTA AUTOMÁTICA ---
+  const baseVirtual = import.meta.env.DEV ? "/" : "/aerosamec-app";
+
   const PROYECTO_INFO = {
-    version: "1.0.5",
+    version: "1.0.6", // Actualizamos versión
     anio: new Date().getFullYear(),
     referente: "Tu Nombre o Referente",
     email: "soporte@aerosamec.com"
   };
 
   useEffect(() => {
-    // Función que verifica la validez de la sesión
     const verificarSesion = () => {
       const sesion = localStorage.getItem('usuario');
       const loginTime = localStorage.getItem('loginTimestamp');
@@ -43,11 +53,16 @@ function App() {
         }
       }
     };
-    // Y luego revisar cada 1 minuto (60000 ms)
-  const intervalo = setInterval(verificarSesion, 60000);
+    const intervalo = setInterval(verificarSesion, 60000);
+    return () => clearInterval(intervalo);
+  }, [usuarioLogueado]);
 
-  return () => clearInterval(intervalo);
-}, [usuarioLogueado]); // Se reinicia el efecto cuando cambia el usuario
+  // Cargar usuarios automáticamente si el admin refresca la página
+  useEffect(() => {
+    if (usuarioLogueado?.rol === 'Administrador') {
+      cargarUsuarios();
+    }
+  }, []);
 
   const cargarUsuarios = async () => {
     try {
@@ -60,11 +75,8 @@ function App() {
   const loginExitoso = (user) => {
     const ahora = new Date().getTime();
     setUsuarioLogueado(user);
-    
-    // Guardamos los datos del usuario y la hora de inicio
     localStorage.setItem('usuario', JSON.stringify(user));
     localStorage.setItem('loginTimestamp', ahora.toString());
-    
     if (user.rol === 'Administrador') cargarUsuarios();
     setVistaActual('inicio');
   };
@@ -72,16 +84,16 @@ function App() {
   const cerrarSesion = () => {
     setUsuarioLogueado(null);
     localStorage.removeItem('usuario');
-    localStorage.removeItem('loginTimestamp'); // Limpiamos el tiempo
+    localStorage.removeItem('loginTimestamp');
     setVistaActual('inicio');
   };
 
   const LayoutPrincipal = () => {
-    if (!usuarioLogueado) return <Navigate to="/" />;
+    if (!usuarioLogueado) return <Navigate to="/" replace />;
 
     return (
       <div className="min-h-screen bg-gray-50 font-sans flex flex-col">
-        {/* ENCABEZADO GLOBAL */}
+        {/* Tu Header y Main se mantienen igual... */}
         <header className="bg-white border-b border-gray-100 px-8 py-4 flex justify-between items-center sticky top-0 z-40 shadow-sm">
           <div className="flex items-center gap-3 cursor-pointer group" onClick={() => setVistaActual('inicio')}>
             <div className="bg-blue-600 p-2.5 rounded-xl text-white shadow-lg shadow-blue-100 group-hover:scale-110 transition-transform">
@@ -105,7 +117,6 @@ function App() {
           </div>
         </header>
 
-        {/* CUERPO PRINCIPAL (flex-1 para empujar el footer abajo) */}
         <main className="max-w-7xl mx-auto p-8 flex-1 w-full">
           {vistaActual === 'inicio' && (
             <div className="animate-in fade-in zoom-in duration-300">
@@ -156,11 +167,11 @@ function App() {
             </div>
           )}
         </main>
-
-       
-        {/* --- PIE DE PÁGINA FIJO (FIXED FOOTER) --- */}
+        
+        {/* Tu Footer se mantiene igual... */}
         <footer className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-md border-t border-gray-100 py-4 px-8 z-40">
-          <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4 text-gray-400">
+           {/* ... contenido del footer ... */}
+           <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4 text-gray-400">
             <div className="flex items-center gap-6">
               <div className="flex items-center gap-2">
                 <Info size={14} className="text-blue-500" />
@@ -172,33 +183,29 @@ function App() {
 
             <div className="flex flex-col md:flex-row items-center gap-2 md:gap-6">
               <span className="text-[10px] font-black uppercase tracking-widest text-gray-300">Ref: <span className="text-gray-500">{PROYECTO_INFO.referente}</span></span>
-              <a 
-                href={`mailto:${PROYECTO_INFO.email}`} 
-                className="flex items-center gap-2 bg-white border border-gray-100 px-4 py-1.5 rounded-xl text-[10px] font-black text-blue-600 hover:bg-blue-600 hover:text-white transition-all shadow-sm"
-              >
+              <a href={`mailto:${PROYECTO_INFO.email}`} className="flex items-center gap-2 bg-white border border-gray-100 px-4 py-1.5 rounded-xl text-[10px] font-black text-blue-600 hover:bg-blue-600 hover:text-white transition-all shadow-sm">
                 <Mail size={12} />
                 {PROYECTO_INFO.email}
               </a>
             </div>
           </div>
         </footer>
-
-        {/* Espaciador al final del main para que el footer no tape el último contenido */}
         <div className="h-20"></div>
       </div>
     );
   };
 
- 
-  // Agrega esta constante justo antes del return final
-  const baseVirtual = import.meta.env.DEV ? "/" : "/aerosamec-app";
-
   return (
     <Router basename={baseVirtual}>
       <Routes>
         <Route path="/cambiar-password" element={<CambiarPassword />} />
-        <Route path="/" element={!usuarioLogueado ? <Login onLogin={loginExitoso} /> : <LayoutPrincipal />} />
-        <Route path="*" element={<Navigate to="/" />} />
+        {/* BLINDAJE 3: REDIRECCIÓN INTELIGENTE */}
+        <Route 
+            path="/" 
+            element={usuarioLogueado ? <LayoutPrincipal /> : <Login onLogin={loginExitoso} />} 
+        />
+        {/* Cualquier ruta que no exista, vuelve al inicio de la carpeta */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>
   );
