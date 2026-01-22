@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, ShieldCheck, KeyRound } from 'lucide-react';
+import CONFIG from '../config'; // Asegúrate de que la ruta sea correcta según tus carpetas
 
 const CambiarPassword = () => {
     const navigate = useNavigate();
@@ -34,8 +35,8 @@ const CambiarPassword = () => {
         }
 
         setCargando(true);
-        try {
-            const res = await fetch("http://localhost/api-equipo/actualizar_password.php", {
+        try {           
+                const res = await fetch(`${CONFIG.API_URL}/actualizar_password.php`, {    
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({

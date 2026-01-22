@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Eye, EyeOff, LifeBuoy } from 'lucide-react'; // Agregamos LifeBuoy para el icono de ayuda
+import CONFIG from '../config'; // Asegúrate de que la ruta sea correcta según tus carpetas
 
 const Login = ({ onLogin }) => {
   const [datos, setDatos] = useState({ dni: '', password: '' });
@@ -20,7 +21,7 @@ const Login = ({ onLogin }) => {
     setCargando(true);
 
     try {
-      const res = await fetch("http://localhost/api-equipo/login.php", {
+      const res = await fetch(`${CONFIG.API_URL}/login.php`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(datos)
@@ -51,7 +52,7 @@ const Login = ({ onLogin }) => {
     setEnviandoMail(true);
 
     try {
-      const res = await fetch("http://localhost/api-equipo/recuperar_password.php", {
+      const res = await fetch(`${CONFIG.API_URL}/recuperar_password.php`, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({ dni: datos.dni })

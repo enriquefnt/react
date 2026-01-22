@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { CheckCircle, FileText, Send, Calendar, User, MessageSquare } from 'lucide-react';
+import CONFIG from '../config'; 
 
 const TAREAS_BASICAS = [
   "Auditoria", "Supervisión de equipos", "Control de stock", 
@@ -41,7 +42,7 @@ const FormularioInforme = ({ usuario }) => {
     };
 
     try {
-      const res = await fetch("http://localhost/api-equipo/guardar_informe.php", {
+        const res = await fetch(`${CONFIG.API_URL}/guardar_informe.php`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(datos)

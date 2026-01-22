@@ -6,6 +6,7 @@ import VistaSupervisor from './components/VistaSupervisor';
 import CambiarPassword from './components/CambiarPassword';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { LogOut, Users, FileText, BarChart3, ChevronLeft, Mail, Info } from 'lucide-react';
+import CONFIG from './config';
 
 function App() {
   // --- BLINDAJE 1: PERSISTENCIA DE ESTADO ---
@@ -25,11 +26,13 @@ function App() {
   const [usuarios, setUsuarios] = useState([]);
   const [vistaActual, setVistaActual] = useState('inicio'); 
   const TIEMPO_EXPIRACION = 30 * 60 * 1000;
-  
-  const API_URL = "http://localhost/api-equipo/index.php";
+  const API_URL = `${CONFIG.API_URL}/index.php`;
+
+
 
   // --- BLINDAJE 2: BASE DE RUTA AUTOMÁTICA ---
-  const baseVirtual = import.meta.env.DEV ? "/" : "/aerosamec-app";
+  //const baseVirtual = import.meta.env.DEV ? "/" : "/aerosamec-app";
+  const baseVirtual = import.meta.env.DEV ? "/" : "/";
 
   const PROYECTO_INFO = {
     version: "1.0.6", // Actualizamos versión

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Search, Calendar, User, ClipboardList, MessageSquare, CheckCircle2, Loader2 } from 'lucide-react';
+import CONFIG from '../config';
 
 const VistaSupervisor = () => {
   const [informes, setInformes] = useState([]);
@@ -13,7 +14,7 @@ const VistaSupervisor = () => {
 
   const consultarAPI = async () => {
     try {
-      const res = await fetch("http://localhost/api-equipo/obtener_informes.php");
+      const res = await fetch(`${CONFIG.API_URL}/obtener_informes.php`);
       const data = await res.json();
       setInformes(data);
     } catch (err) {
@@ -26,7 +27,7 @@ const VistaSupervisor = () => {
   const guardarNota = async (id, nota) => {
     setGuardandoId(id);
     try {
-      await fetch("http://localhost/api-equipo/actualizar_obs_supervisor.php", {
+      await fetch(`${CONFIG.API_URL}/actualizar_obs_supervisor.ph`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, nota })

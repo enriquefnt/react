@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import UserCard from './UserCard';
 import { LogOut, UserPlus, Users, Search, X } from 'lucide-react';
+import CONFIG from '../config'; 
 
 const PUESTOS_VALIDOS = ["Gerente", "Sub gerente", "Coordinador", "Jefe de sector", "Secretaria/o contable", "Secretario/a administrativa"];
 const ROLES = ["Usuario", "Supervisor", "Administrador"];
@@ -40,7 +41,7 @@ const DashboardAdmin = ({ usuarios, setUsuarios, API_URL, usuarioLogueado, onLog
                 setUsuarios(usuarios.map(u => u.id === editandoId ? { ...u, ...datos } : u));
                 cerrarModal();
             } else {
-                const res = await fetch("http://localhost/api-equipo/crear_usuario.php", {
+                    const res = await fetch(`${CONFIG.API_URL}/crear_usuario.php`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(datos)
