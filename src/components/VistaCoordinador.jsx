@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Search, Calendar, User, ClipboardList, MessageSquare, CheckCircle2, Loader2 } from 'lucide-react';
 import CONFIG from '../config';
 
-const VistaSupervisor = () => {
+const VistaCoordinador = () => {
   const [informes, setInformes] = useState([]);
   const [filtro, setFiltro] = useState('');
   const [cargando, setCargando] = useState(true);
@@ -27,7 +27,7 @@ const VistaSupervisor = () => {
   const guardarNota = async (id, nota) => {
     setGuardandoId(id);
     try {
-      await fetch(`${CONFIG.API_URL}/actualizar_obs_supervisor.ph`, {
+      await fetch(`${CONFIG.API_URL}/actualizar_obs_Coordinador.ph`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, nota })
@@ -95,7 +95,7 @@ const VistaSupervisor = () => {
                 <th className="p-6 text-left">Responsable</th>
                 <th className="p-6 text-left">Tareas Realizadas</th>
                 <th className="p-6 text-left">Observaciones Empleado</th>
-                <th className="p-6 text-left">Feedback Supervisor</th>
+                <th className="p-6 text-left">Feedback Coordinador</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
@@ -154,20 +154,20 @@ const VistaSupervisor = () => {
                         </div>
                     </td>
 
-                    {/* NOTA SUPERVISOR CON INDICADOR DE GUARDADO */}
+                    {/* NOTA Coordinador CON INDICADOR DE GUARDADO */}
                     <td className="p-6 min-w-[250px]">
                       <div className="relative">
                         <textarea 
                           className="w-full p-4 text-xs font-bold border-2 border-gray-50 rounded-2xl focus:border-blue-500 outline-none bg-gray-50/30 focus:bg-white transition-all resize-none text-gray-700 placeholder:font-normal placeholder:text-gray-300"
                           placeholder="Añadir feedback técnico..."
                           rows="2"
-                          defaultValue={inf.obs_supervisor}
+                          defaultValue={inf.obs_Coordinador}
                           onBlur={(e) => guardarNota(inf.id, e.target.value)}
                         />
                         <div className="absolute bottom-3 right-3">
                             {guardandoId === inf.id ? (
                                 <Loader2 size={16} className="text-blue-500 animate-spin" />
-                            ) : inf.obs_supervisor ? (
+                            ) : inf.obs_Coordinador ? (
                                 <CheckCircle2 size={16} className="text-green-500 opacity-50" />
                             ) : null}
                         </div>
@@ -196,4 +196,4 @@ const VistaSupervisor = () => {
   );
 };
 
-export default VistaSupervisor;
+export default VistaCoordinador;

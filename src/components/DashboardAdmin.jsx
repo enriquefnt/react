@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import UserCard from './UserCard';
 import { LogOut, UserPlus, Users, Search, X } from 'lucide-react';
+import toast from 'react-hot-toast';
 import CONFIG from '../config'; 
 
-const PUESTOS_VALIDOS = ["Gerente", "Sub gerente", "Coordinador", "Jefe de sector", "Secretaria/o contable", "Secretario/a administrativa"];
-const ROLES = ["Usuario", "Supervisor", "Administrador"];
+const PUESTOS_VALIDOS = ["Médico/a", "Enfermero/a", "Chofer Paramédico", "Administrativo", "Secretaria/o contable", "Secretario/a administrativa"];
+const ROLES = ["Usuario", "Coordinador", "Administrador"];
 
 const capitalizarTexto = (texto) => {
     if (!texto) return "";
@@ -79,13 +80,30 @@ const DashboardAdmin = ({ usuarios, setUsuarios, API_URL, usuarioLogueado, onLog
         setMostrarModal(true);
     };
 
-    const eliminarUsuario = async (id) => {
-        if (!confirm("¿Eliminar empleado?")) return;
+    const alBorrar = async (id) => {
+        if (!window.confirm("¿Realmente deseas eliminar este usuario?")) return;
+      
+        const loadingToast = toast.loading("Eliminando de la base de datos...");
+      
         try {
-            await fetch(`${API_URL}?id=${id}`, { method: 'DELETE' });
-            setUsuarios(usuarios.filter(u => u.id !== id));
-        } catch (err) { console.error(err); }
-    };
+          const res = await fetch(`${API_URL}?id=${id}`, { 
+            method: 'DELETE' 
+          });
+      
+          // 1. Verificamos si la respuesta es OK
+          if (!res.ok) throw new Error("Error en la respuesta del servidor");
+      
+          // 2. Actualizamos el estado LOCAL para que desaparezca de la vista sin recargar
+          // Esto es lo que hace que la interfaz se sienta "instantánea"
+          setUsuarios(prev => prev.filter(user => user.id !== id));
+      
+          toast.success("Usuario eliminado correctamente", { id: loadingToast });
+      
+        } catch (err) {
+          console.error(err);
+          toast.error("El servidor no respondió, pero verifica si se borró", { id: loadingToast });
+        }
+      };
 
     const usuariosFiltrados = usuarios.filter(u => {
         const t = busqueda.toLowerCase();
@@ -105,7 +123,7 @@ const DashboardAdmin = ({ usuarios, setUsuarios, API_URL, usuarioLogueado, onLog
                         className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-2xl font-bold shadow-xl shadow-blue-100 transition-all flex items-center gap-2 transform hover:scale-105 active:scale-95"
                     >
                         <UserPlus size={20} />
-                        <span>NUEVO EMPLEADO</span>
+                        <span>NUEVO USUARIO</span>
                     </button>
                 </div>
 
@@ -125,7 +143,7 @@ const DashboardAdmin = ({ usuarios, setUsuarios, API_URL, usuarioLogueado, onLog
                         <div className="w-12 mr-4 text-center">Perfil</div>
                         <div className="w-32">DNI / Estado</div>
                         <div className="flex-1">Nombre y Email</div>
-                        <div className="flex-1">Puesto / Rol</div>
+                        <div className="flex-1">Profesión / Rol</div>
                         <div className="w-32 text-right">Acciones</div>
                     </div>
                     <div className="divide-y divide-gray-50">
@@ -179,7 +197,7 @@ const DashboardAdmin = ({ usuarios, setUsuarios, API_URL, usuarioLogueado, onLog
                             type="text" value={nombre} onChange={(e) => setNombre(e.target.value)} required />
                     </div>
                     <div className="space-y-1">
-                        <label className="text-[10px] font-black text-gray-400 uppercase ml-1 tracking-widest">Puesto en Empresa</label>
+                        <label className="text-[10px] font-black text-gray-400 uppercase ml-1 tracking-widest">Profesión</label>
                         <select className="w-full bg-gray-50 border-2 border-gray-100 p-3.5 rounded-2xl focus:border-blue-500 focus:bg-white outline-none font-bold transition-all appearance-none text-sm"
                             value={PUESTOS_VALIDOS.includes(puesto) ? puesto : (puesto === '' ? '' : 'Otro')}
                             onChange={(e) => e.target.value === 'Otro' ? setPuesto('') : setPuesto(e.target.value)}>

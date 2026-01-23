@@ -1,19 +1,29 @@
 import { LogOut, Users, Mail, Info } from 'lucide-react';
 import logoUrl from '../assets/AESicono.svg';
+import React, { useEffect, useState } from 'react'; // <--- Asegúrate de que esto esté presente
 
 const Layout = ({ children, usuario, onLogout, setVistaActual, PROYECTO_INFO }) => {
   return (
     <div className="min-h-screen bg-gray-50 font-sans flex flex-col">
       {/* HEADER FIJO */}
       <header className="bg-white border-b border-gray-100 px-8 py-4 flex justify-between items-center sticky top-0 z-40 shadow-sm">
-        <div className="flex items-center gap-3 cursor-pointer group" onClick={() => setVistaActual('inicio')}>
-          <div className="bg-blue-600 p-2.5 rounded-xl text-white shadow-lg shadow-blue-100 group-hover:scale-110 transition-transform">
-            {/* Si el logoUrl no carga, Users queda de respaldo */}
-            {logoUrl ? <img src={logoUrl} alt="Logo" className="h-6 w-6" /> : <Users size={24} strokeWidth={2.5} />}
+        <div className="flex items-center gap-4 cursor-pointer group" onClick={() => setVistaActual('inicio')}>
+          {/* ELIMINAMOS EL BG-BLUE-600 Y EL PADDING */}
+          <div className="transition-transform duration-300 group-hover:scale-105">
+            <img 
+              src={logoUrl} 
+              alt="AeroSamec Logo" 
+              className="h-12 w-auto drop-shadow-sm" // Ajustamos la altura y quitamos el fondo azul
+            />
           </div>
+          
           <div>
-            <h1 className="text-xl font-black text-gray-800 tracking-tighter uppercase leading-none">AeroSamec</h1>
-            <p className="text-[10px] text-gray-400 font-bold tracking-widest uppercase mt-1">Panel de Gestión</p>
+          <h1 className="text-xl font-black text-blue-800 tracking-tighter uppercase leading-none">
+            AeroSamec
+          </h1>
+          <p className="text-[10px] text-slate-500 font-bold tracking-widest uppercase mt-1">
+            Panel de Gestión
+          </p>
           </div>
         </div>
 

@@ -5,7 +5,7 @@ function UserCard({ dni, nombre, email, puesto, rol, cambio_password, alBorrar, 
   // Función interna para elegir el icono del avatar según el rol
   const IconoRol = () => {
     if (rol === 'Administrador') return <ShieldCheck size={18} />;
-    if (rol === 'Supervisor') return <UserCog size={18} />;
+    if (rol === 'Coordinador') return <UserCog size={18} />;
     return <User size={18} />;
   };
 
@@ -48,7 +48,7 @@ function UserCard({ dni, nombre, email, puesto, rol, cambio_password, alBorrar, 
         <div className="flex items-center gap-2 mt-1">
             <span className={`text-[9px] uppercase px-2 py-0.5 rounded-lg font-black tracking-widest ${
             rol === 'Administrador' ? 'bg-purple-100 text-purple-600' : 
-            rol === 'Supervisor' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-500'
+            rol === 'Coordinador' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-500'
             }`}>
             {rol}
             </span>

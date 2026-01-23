@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
+import toast, { Toaster } from 'react-hot-toast'; // Agregamos toast aquí
 
 // Componentes
 import Login from './components/Login';
 import DashboardAdmin from './components/DashboardAdmin';
 import FormularioInforme from './components/FormularioInforme';
-import VistaSupervisor from './components/VistaSupervisor';
+import VistaCoordinador from './components/VistaCoordinador';
 import CambiarPassword from './components/CambiarPassword';
 import Layout from './components/Layout';
 import MenuInicio from './components/MenuInicio';
@@ -29,7 +30,21 @@ function App() {
   const [vistaActual, setVistaActual] = useState('inicio');
   const API_URL = `${CONFIG.API_URL}/index.php`;
 
-  // --- EFECTOS ---
+  // --- EFECTO DE CONEXIÓN (AHORA ADENTRO) ---
+  useEffect(() => {
+    const manejarOnline = () => toast.success("Conexión restablecida", { icon: '✈️' });
+    const manejarOffline = () => toast.error("Se ha perdido la conexión a internet", { duration: Infinity });
+
+    window.addEventListener('online', manejarOnline);
+    window.addEventListener('offline', manejarOffline);
+
+    return () => {
+      window.removeEventListener('online', manejarOnline);
+      window.removeEventListener('offline', manejarOffline);
+    };
+  }, []);
+
+  // --- CARGA DE USUARIOS ---
   useEffect(() => {
     if (usuarioLogueado?.rol === 'Administrador') cargarUsuarios();
   }, [usuarioLogueado]);
@@ -55,38 +70,41 @@ function App() {
   };
 
   return (
-    <Router>
-      <Routes>
-        <Route path="/cambiar-password" element={<CambiarPassword />} />
-        <Route path="/" element={
-          !usuarioLogueado ? (
-            <Login onLogin={loginExitoso} />
-          ) : (
-            <Layout 
-              usuario={usuarioLogueado} 
-              onLogout={cerrarSesion} 
-              setVistaActual={setVistaActual}
-              PROYECTO_INFO={PROYECTO_INFO}
-            >
-              {vistaActual === 'inicio' ? (
-                <MenuInicio usuario={usuarioLogueado} setVistaActual={setVistaActual} />
-              ) : (
-                <div className="animate-in slide-in-from-bottom-4 duration-500">
-                  <button onClick={() => setVistaActual('inicio')} className="flex items-center gap-2 text-gray-400 hover:text-blue-600 font-black text-xs uppercase tracking-widest mb-8 transition-colors group">
-                    <ChevronLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
-                    Volver al Menú
-                  </button>
-                  {vistaActual === 'informe' && <FormularioInforme usuario={usuarioLogueado} />}
-                  {vistaActual === 'usuarios' && <DashboardAdmin usuarios={usuarios} setUsuarios={setUsuarios} API_URL={API_URL} usuarioLogueado={usuarioLogueado} />}
-                  {vistaActual === 'supervision' && <VistaSupervisor />}
-                </div>
-              )}
-            </Layout>
-          )
-        } />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </Router>
+    <>
+      <Toaster position="top-right" reverseOrder={false} />
+      <Router>
+        <Routes>
+          <Route path="/cambiar-password" element={<CambiarPassword />} />
+          <Route path="/" element={
+            !usuarioLogueado ? (
+              <Login onLogin={loginExitoso} />
+            ) : (
+              <Layout 
+                usuario={usuarioLogueado} 
+                onLogout={cerrarSesion} 
+                setVistaActual={setVistaActual}
+                PROYECTO_INFO={PROYECTO_INFO}
+              >
+                {vistaActual === 'inicio' ? (
+                  <MenuInicio usuario={usuarioLogueado} setVistaActual={setVistaActual} />
+                ) : (
+                  <div className="animate-in slide-in-from-bottom-4 duration-500">
+                    <button onClick={() => setVistaActual('inicio')} className="flex items-center gap-2 text-gray-400 hover:text-blue-600 font-black text-xs uppercase tracking-widest mb-8 transition-colors group">
+                      <ChevronLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
+                      Volver al Menú
+                    </button>
+                    {vistaActual === 'informe' && <FormularioInforme usuario={usuarioLogueado} />}
+                    {vistaActual === 'usuarios' && <DashboardAdmin usuarios={usuarios} setUsuarios={setUsuarios} API_URL={API_URL} usuarioLogueado={usuarioLogueado} />}
+                    {vistaActual === 'supervision' && <VistaCoordinador />}
+                  </div>
+                )}
+              </Layout>
+            )
+          } />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Router>
+    </>
   );
 }
 
