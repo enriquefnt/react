@@ -80,31 +80,31 @@ const DashboardAdmin = ({ usuarios, setUsuarios, API_URL, usuarioLogueado, onLog
         setMostrarModal(true);
     };
 
-    const alBorrar = async (id) => {
+    const eliminarUsuario = async (id) => {
         if (!window.confirm("¿Realmente deseas eliminar este usuario?")) return;
-      
-        const loadingToast = toast.loading("Eliminando de la base de datos...");
-      
+    
+        const loadingToast = toast.loading("Eliminando...");
+    
         try {
           const res = await fetch(`${API_URL}?id=${id}`, { 
             method: 'DELETE' 
           });
-      
-          // 1. Verificamos si la respuesta es OK
-          if (!res.ok) throw new Error("Error en la respuesta del servidor");
-      
-          // 2. Actualizamos el estado LOCAL para que desaparezca de la vista sin recargar
-          // Esto es lo que hace que la interfaz se sienta "instantánea"
-          setUsuarios(prev => prev.filter(user => user.id !== id));
-      
-          toast.success("Usuario eliminado correctamente", { id: loadingToast });
-      
+    
+          // Si el servidor responde bien (status 200)
+          if (res.ok) {
+            // AQUÍ ESTÁ EL TRUCO: 
+            // Filtramos la lista localmente para que desaparezca al instante
+            setUsuarios(usuarios.filter(u => u.id !== id));
+            
+            toast.success("Usuario eliminado", { id: loadingToast });
+          } else {
+            throw new Error("Error en servidor");
+          }
         } catch (err) {
           console.error(err);
-          toast.error("El servidor no respondió, pero verifica si se borró", { id: loadingToast });
+          toast.error("No se pudo eliminar, reintenta.", { id: loadingToast });
         }
       };
-
     const usuariosFiltrados = usuarios.filter(u => {
         const t = busqueda.toLowerCase();
         return `${u.nombre} ${u.dni} ${u.email} ${u.puesto} ${u.rol}`.toLowerCase().includes(t);
