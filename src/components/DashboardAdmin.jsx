@@ -87,7 +87,7 @@ const DashboardAdmin = ({ usuarios, setUsuarios, API_URL, usuarioLogueado, onLog
     
         try {
           const res = await fetch(`${API_URL}?id=${id}`, { 
-            method: 'DELETE' 
+            method: 'GET' 
           });
     
           // Si el servidor responde bien (status 200)
