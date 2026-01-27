@@ -1,197 +1,166 @@
-import { useState, useEffect } from 'react';
-import { Search, Calendar, User, ClipboardList, MessageSquare, CheckCircle2, Loader2 } from 'lucide-react';
-import CONFIG from '../config';
+import React, { useState } from 'react';
+import { ClipboardList, User, Stethoscope, Plane, Save, MapPin } from 'lucide-react';
+import toast from 'react-hot-toast';
 
-const VistaCoordinador = () => {
-  const [informes, setInformes] = useState([]);
-  const [filtro, setFiltro] = useState('');
-  const [cargando, setCargando] = useState(true);
-  const [guardandoId, setGuardandoId] = useState(null);
-
-  useEffect(() => {
-    consultarAPI();
-  }, []);
-
-  const consultarAPI = async () => {
-    try {
-      const res = await fetch(`${CONFIG.API_URL}/obtener_informes.php`);
-      const data = await res.json();
-      setInformes(data);
-    } catch (err) {
-      console.error("Error cargando informes:", err);
-    } finally {
-      setCargando(false);
-    }
-  };
-
-  const guardarNota = async (id, nota) => {
-    setGuardandoId(id);
-    try {
-      await fetch(`${CONFIG.API_URL}/actualizar_obs_Coordinador.ph`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, nota })
-      });
-      // Opcional: Pequeña pausa visual para mostrar el check de éxito
-      setTimeout(() => setGuardandoId(null), 1000);
-    } catch (err) {
-      alert("Error al conectar con el servidor");
-      setGuardandoId(null);
-    }
-  };
-
-  const informesFiltrados = informes.filter(inf => {
-    const t = filtro.toLowerCase();
-    const fechaISO = new Date(inf.fecha_hora);
-    const fechaFormateada = fechaISO.toLocaleDateString('es-AR', {
-      day: '2-digit', month: '2-digit', year: 'numeric'
-    });
-
-    return (
-      inf.nombre?.toLowerCase().includes(t) ||
-      inf.tareas?.toLowerCase().includes(t) ||
-      inf.rol?.toLowerCase().includes(t) ||
-      fechaFormateada.includes(t)
-    );
+const VistaCoordinador = ({ usuarioLogueado, API_URL }) => {
+  const [formData, setFormData] = useState({
+    paciente_nombre: '', paciente_apellido: '', paciente_sexo: 'Masculino',
+    fecha_nacimiento: '', domicilio: '', localidad: '',
+    hospital_origen: '', servicio_salud: '', solicitante_nombre: '', solicitante_cargo: '',
+    motivo_traslado: '', diagnosticos: '', codigo_triage: 'Verde', tipo_paciente: 'Adulto',
+    hospital_receptor: '', medico_traslado: '', enfermero_traslado: '',
+    aeronave_asignada: '', piloto_asignado: '', eta_despegue: ''
   });
 
-  if (cargando) return (
-    <div className="flex flex-col items-center justify-center p-20 gap-4 text-gray-400">
-      <Loader2 className="animate-spin text-blue-500" size={40} />
-      <p className="font-black uppercase text-xs tracking-[0.2em]">Sincronizando Informes...</p>
-    </div>
-  );
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
 
+  // --- AQUÍ ESTABA EL ERROR: Faltaba definir esta función ---
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    // 1. Verificación de Seguridad: Evita el error de Foreign Key en el servidor
+    if (!usuarioLogueado || !usuarioLogueado.id) {
+      console.error("DEBUG - Datos del usuario en el momento del error:", usuarioLogueado);
+      return toast.error("Error de sesión: No se detecta el ID del operador. Por favor, cierra sesión y vuelve a entrar.");
+    }
+
+    // 2. Validación de campos obligatorios
+    if (!formData.paciente_nombre || !formData.hospital_origen) {
+      return toast.error("Por favor, completa al menos el nombre del paciente y el hospital de origen.");
+    }
+
+    const loadingToast = toast.loading("Registrando solicitud en la base de datos...");
+
+    try {
+      // Preparamos el paquete de datos
+      const datosParaEnviar = {
+        ...formData,
+        id_operador_actual: usuarioLogueado.id // Este es el ID que el PHP usará para 'creado_por'
+      };
+
+      console.log("DEBUG - Enviando estos datos:", datosParaEnviar);
+
+      const response = await fetch(`${API_URL}/traslados.php`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json' 
+        },
+        body: JSON.stringify(datosParaEnviar)
+      });
+
+      // Verificamos si la respuesta es OK antes de intentar leer el JSON
+      if (!response.ok) {
+        const errorTexto = await response.text(); // Leemos el error del servidor (el 500)
+        throw new Error(errorTexto || "Error interno del servidor (500)");
+      }
+
+      const res = await response.json();
+
+      if (res.status === 'success') {
+        toast.success("¡Traslado registrado con éxito!", { id: loadingToast });
+        
+        // Limpiamos el formulario para un nuevo registro
+        setFormData({
+          paciente_nombre: '', paciente_apellido: '', paciente_sexo: 'Masculino',
+          fecha_nacimiento: '', domicilio: '', localidad: '',
+          hospital_origen: '', servicio_salud: '', solicitante_nombre: '', solicitante_cargo: '',
+          motivo_traslado: '', diagnosticos: '', codigo_triage: 'Verde', tipo_paciente: 'Adulto',
+          hospital_receptor: '', medico_traslado: '', enfermero_traslado: '',
+          aeronave_asignada: '', piloto_asignado: '', eta_despegue: ''
+        });
+      } else {
+        throw new Error(res.message || "Error desconocido al guardar");
+      }
+    } catch (error) {
+      console.error("Error detallado:", error);
+      toast.error("No se pudo guardar: " + error.message, { id: loadingToast, duration: 6000 });
+    }
+  };
+  
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 max-w-full">
-      {/* ENCABEZADO Y BUSCADOR */}
-      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-6">
-        <div>
-          <h2 className="text-3xl font-black text-gray-800 tracking-tight flex items-center gap-3">
-            <ClipboardList className="text-blue-600" size={32} />
-            Extracto de Actividad
+    <div className="max-w-5xl mx-auto pb-10">
+      <div className="bg-white shadow-2xl rounded-3xl overflow-hidden border border-gray-100">
+        <div className="bg-gradient-to-r from-blue-600 to-blue-800 p-6 text-white">
+          <h2 className="text-2xl font-black flex items-center gap-3">
+            <ClipboardList size={30} /> GESTIÓN DE TRASLADOS
           </h2>
-          <p className="text-[10px] font-black text-blue-500 uppercase tracking-[0.3em] mt-1 ml-1">Auditoría y Control de Equipo</p>
+          <p className="opacity-80 text-sm">Registro de misiones aero-médicas</p>
         </div>
 
-        <div className="relative w-full lg:w-96 group">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-blue-500 transition-colors" size={20} />
-          <input 
-            type="text" 
-            placeholder="Buscar por empleado, fecha o tarea..."
-            className="w-full pl-12 pr-6 py-4 bg-white border-2 border-gray-50 rounded-[20px] outline-none focus:border-blue-500 focus:bg-white transition-all shadow-sm font-bold text-sm text-gray-700 placeholder:text-gray-300"
-            onChange={(e) => setFiltro(e.target.value)}
-          />
-        </div>
+        <form onSubmit={handleSubmit} className="p-8 space-y-10">
+          
+          {/* SECCIÓN 1: FILIACIÓN */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 text-blue-700 font-bold border-b pb-2 uppercase text-sm tracking-wider">
+              <User size={18}/> Datos del Paciente
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <input name="paciente_nombre" placeholder="Nombre" onChange={handleChange} className="p-3 bg-gray-50 border rounded-xl outline-none focus:ring-2 focus:ring-blue-400 transition-all" />
+              <input name="paciente_apellido" placeholder="Apellido" onChange={handleChange} className="p-3 bg-gray-50 border rounded-xl outline-none focus:ring-2 focus:ring-blue-400 transition-all" />
+              <select name="paciente_sexo" onChange={handleChange} className="p-3 bg-gray-50 border rounded-xl outline-none focus:ring-2 focus:ring-blue-400">
+                <option value="Masculino">Masculino</option>
+                <option value="Femenino">Femenino</option>
+                <option value="Otro">Otro</option>
+              </select>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+               <input type="date" name="fecha_nacimiento" onChange={handleChange} className="p-3 bg-gray-50 border rounded-xl outline-none" />
+               <input name="domicilio" placeholder="Domicilio" onChange={handleChange} className="p-3 bg-gray-50 border rounded-xl outline-none" />
+               <input name="localidad" placeholder="Localidad" onChange={handleChange} className="p-3 bg-gray-50 border rounded-xl outline-none" />
+            </div>
+          </div>
+
+          {/* SECCIÓN 2: DATOS MÉDICOS */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 text-red-600 font-bold border-b pb-2 uppercase text-sm tracking-wider">
+                <Stethoscope size={18}/> Evaluación Médica
+              </div>
+              <select name="codigo_triage" onChange={handleChange} className="w-full p-3 border-2 rounded-xl font-black text-center focus:ring-0">
+                <option value="Verde" className="text-green-600">🟢 CÓDIGO VERDE</option>
+                <option value="Amarillo" className="text-yellow-600">🟡 CÓDIGO AMARILLO</option>
+                <option value="Rojo" className="text-red-600">🔴 CÓDIGO ROJO</option>
+              </select>
+              <textarea name="diagnosticos" placeholder="Diagnóstico y observaciones..." onChange={handleChange} className="w-full p-3 bg-gray-50 border rounded-xl h-28" />
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 text-blue-700 font-bold border-b pb-2 uppercase text-sm tracking-wider">
+                <MapPin size={18}/> Origen y Solicitante
+              </div>
+              <input name="hospital_origen" placeholder="Hospital / Centro Emisor" onChange={handleChange} className="w-full p-3 bg-gray-50 border rounded-xl" />
+              <input name="solicitante_nombre" placeholder="Médico que solicita" onChange={handleChange} className="w-full p-3 bg-gray-50 border rounded-xl" />
+              <select name="tipo_paciente" onChange={handleChange} className="w-full p-3 bg-gray-50 border rounded-xl">
+                <option value="Adulto">Adulto</option>
+                <option value="Pediátrico">Pediátrico</option>
+                <option value="Neonato">Neonato</option>
+                <option value="Gestante">Gestante</option>
+              </select>
+            </div>
+          </div>
+
+          {/* SECCIÓN 3: PLAN DE TRASLADO */}
+          <div className="bg-blue-50 p-6 rounded-3xl border border-blue-100 space-y-4">
+            <div className="flex items-center gap-2 text-blue-900 font-black uppercase text-sm tracking-wider">
+              <Plane size={20}/> Plan de Misión
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+               <input name="hospital_receptor" placeholder="Hospital Receptor" onChange={handleChange} className="p-3 bg-white border rounded-xl" />
+               <input name="aeronave_asignada" placeholder="Matrícula Aeronave" onChange={handleChange} className="p-3 bg-white border rounded-xl" />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+               <input name="piloto_asignado" placeholder="Piloto" onChange={handleChange} className="p-3 bg-white border rounded-xl" />
+               <input type="datetime-local" name="eta_despegue" onChange={handleChange} className="p-3 bg-white border rounded-xl" />
+            </div>
+          </div>
+
+          <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-5 rounded-2xl shadow-xl transition-all flex items-center justify-center gap-3 transform hover:-translate-y-1">
+            <Save size={24} /> GUARDAR REGISTRO DE TRASLADO
+          </button>
+        </form>
       </div>
-
-      {/* TABLA DE INFORMES */}
-      <div className="bg-white rounded-[35px] shadow-sm border border-gray-100 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
-            <thead>
-              <tr className="bg-gray-50/50 border-b border-gray-50 text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                <th className="p-6 text-left">Fecha / Hora</th>
-                <th className="p-6 text-left">Responsable</th>
-                <th className="p-6 text-left">Tareas Realizadas</th>
-                <th className="p-6 text-left">Observaciones Empleado</th>
-                <th className="p-6 text-left">Feedback Coordinador</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {informesFiltrados.length > 0 ? (
-                informesFiltrados.map(inf => (
-                  <tr key={inf.id} className="hover:bg-blue-50/30 transition-all group">
-                    
-                    {/* FECHA Y HORA */}
-                    <td className="p-6 whitespace-nowrap">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2.5 bg-gray-50 rounded-xl text-blue-500 group-hover:bg-blue-500 group-hover:text-white transition-colors">
-                            <Calendar size={18} />
-                        </div>
-                        <div>
-                            <div className="font-black text-gray-800 text-sm tracking-tighter">
-                                {new Date(inf.fecha_hora).toLocaleDateString('es-AR', {day:'2-digit', month:'2-digit', year:'numeric'})}
-                            </div>
-                            <div className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter leading-none">
-                                {new Date(inf.fecha_hora).toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit'})} HS
-                            </div>
-                        </div>
-                      </div>
-                    </td>
-
-                    {/* EMPLEADO (AVATAR + NOMBRE) */}
-                    <td className="p-6">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-black text-xs border-2 border-white shadow-sm shrink-0">
-                            {inf.nombre?.[0].toUpperCase()}
-                        </div>
-                        <div className="min-w-0">
-                            <p className="font-black text-gray-800 text-sm leading-tight truncate uppercase tracking-tighter">{inf.nombre}</p>
-                            <span className="text-[9px] text-blue-500 font-black uppercase tracking-widest">{inf.rol}</span>
-                        </div>
-                      </div>
-                    </td>
-
-                    {/* TAREAS (BADGES) */}
-                    <td className="p-6">
-                      <div className="flex flex-wrap gap-1.5 max-w-xs">
-                        {inf.tareas.split(',').map((t, i) => (
-                          <span key={i} className="bg-white text-gray-600 px-3 py-1 rounded-lg text-[9px] font-black border border-gray-100 uppercase tracking-tighter shadow-sm">
-                            {t.trim()}
-                          </span>
-                        ))}
-                      </div>
-                    </td>
-
-                    {/* OBSERVACIONES EMPLEADO */}
-                    <td className="p-6">
-                        <div className="flex items-start gap-2 max-w-xs italic text-gray-500 text-xs">
-                            <MessageSquare size={14} className="shrink-0 text-gray-300 mt-0.5" />
-                            <p className="leading-relaxed">
-                                {inf.observaciones || <span className="text-gray-300 font-normal">Sin comentarios adicionales</span>}
-                            </p>
-                        </div>
-                    </td>
-
-                    {/* NOTA Coordinador CON INDICADOR DE GUARDADO */}
-                    <td className="p-6 min-w-[250px]">
-                      <div className="relative">
-                        <textarea 
-                          className="w-full p-4 text-xs font-bold border-2 border-gray-50 rounded-2xl focus:border-blue-500 outline-none bg-gray-50/30 focus:bg-white transition-all resize-none text-gray-700 placeholder:font-normal placeholder:text-gray-300"
-                          placeholder="Añadir feedback técnico..."
-                          rows="2"
-                          defaultValue={inf.obs_Coordinador}
-                          onBlur={(e) => guardarNota(inf.id, e.target.value)}
-                        />
-                        <div className="absolute bottom-3 right-3">
-                            {guardandoId === inf.id ? (
-                                <Loader2 size={16} className="text-blue-500 animate-spin" />
-                            ) : inf.obs_Coordinador ? (
-                                <CheckCircle2 size={16} className="text-green-500 opacity-50" />
-                            ) : null}
-                        </div>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="5" className="p-32 text-center">
-                    <div className="flex flex-col items-center gap-2">
-                        <Search size={40} className="text-gray-100" />
-                        <p className="text-gray-400 font-black uppercase text-xs tracking-widest">No hay registros para mostrar</p>
-                    </div>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-      
-      {/* ESPACIADOR PARA EL FOOTER FIJO */}
-      <div className="h-24"></div>
     </div>
   );
 };

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
-import toast, { Toaster } from 'react-hot-toast'; // Agregamos toast aquí
+import toast, { Toaster } from 'react-hot-toast';
 
 // Componentes
 import Login from './components/Login';
@@ -28,9 +28,10 @@ function App() {
 
   const [usuarios, setUsuarios] = useState([]);
   const [vistaActual, setVistaActual] = useState('inicio');
-  const API_URL = `${CONFIG.API_URL}/index.php`;
+  
+  // Cambiamos esto para que sea la base y no solo index.php
+  const API_BASE = CONFIG.API_URL; 
 
-  // --- EFECTO DE CONEXIÓN (AHORA ADENTRO) ---
   useEffect(() => {
     const manejarOnline = () => toast.success("Conexión restablecida", { icon: '✈️' });
     const manejarOffline = () => toast.error("Se ha perdido la conexión a internet", { duration: Infinity });
@@ -44,14 +45,17 @@ function App() {
     };
   }, []);
 
-  // --- CARGA DE USUARIOS ---
+  // Solo cargamos usuarios si es Administrador para evitar el error 401
   useEffect(() => {
-    if (usuarioLogueado?.rol === 'Administrador') cargarUsuarios();
+    if (usuarioLogueado?.rol === 'Administrador') {
+      cargarUsuarios();
+    }
   }, [usuarioLogueado]);
 
   const cargarUsuarios = async () => {
     try {
-      const res = await fetch(API_URL);
+      const res = await fetch(`${API_BASE}/index.php`);
+      if (res.status === 401) return; // Si no está autorizado, salimos silenciosamente
       const data = await res.json();
       setUsuarios(data);
     } catch (err) { console.error(err); }
@@ -93,9 +97,26 @@ function App() {
                       <ChevronLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
                       Volver al Menú
                     </button>
+                    
+                    {/* CONTROL DE VISTAS SEGÚN SELECCIÓN */}
                     {vistaActual === 'informe' && <FormularioInforme usuario={usuarioLogueado} />}
-                    {vistaActual === 'usuarios' && <DashboardAdmin usuarios={usuarios} setUsuarios={setUsuarios} API_URL={API_URL} usuarioLogueado={usuarioLogueado} />}
-                    {vistaActual === 'supervision' && <VistaCoordinador />}
+                    
+                    {vistaActual === 'usuarios' && (
+                      <DashboardAdmin 
+                        usuarios={usuarios} 
+                        setUsuarios={setUsuarios} 
+                        API_URL={`${API_BASE}/index.php`} 
+                        usuarioLogueado={usuarioLogueado} 
+                      />
+                    )}
+
+                    {/* AJUSTE PARA COORDINADOR */}
+                    {vistaActual === 'supervision' && (
+                      <VistaCoordinador 
+                        usuarioLogueado={usuarioLogueado} 
+                        API_URL={API_BASE} 
+                      />
+                    )}
                   </div>
                 )}
               </Layout>
