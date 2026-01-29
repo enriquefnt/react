@@ -1,164 +1,185 @@
-import React, { useState } from 'react';
-import { ClipboardList, User, Stethoscope, Plane, Save, MapPin } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ClipboardList, User, Stethoscope, Plane, Save, Trash2, MapPin, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-const VistaCoordinador = ({ usuarioLogueado, API_URL }) => {
-  const [formData, setFormData] = useState({
-    paciente_nombre: '', paciente_apellido: '', paciente_sexo: 'Masculino',
-    fecha_nacimiento: '', domicilio: '', localidad: '',
-    hospital_origen: '', servicio_salud: '', solicitante_nombre: '', solicitante_cargo: '',
-    motivo_traslado: '', diagnosticos: '', codigo_triage: 'Verde', tipo_paciente: 'Adulto',
-    hospital_receptor: '', medico_traslado: '', enfermero_traslado: '',
-    aeronave_asignada: '', piloto_asignado: '', eta_despegue: ''
-  });
+const VistaCoordinador = ({ usuarioLogueado, API_URL, isOpen, onClose }) => {
+  const initialState = {
+    paciente_nombre: '', paciente_apellido: '', paciente_dni: '', 
+    paciente_sexo: 'Masculino', fecha_nacimiento: '', edad_formato: '',
+    domicilio: '', localidad: '', hospital_origen: '', hospital_receptor: '',
+    diagnosticos: '', codigo_triage: 'Verde', tipo_paciente: 'Adulto',
+    medico_traslado: '', enfermero_traslado: '', aeronave_asignada: '', 
+    piloto_asignado: '', eta_despegue: ''
+  };
+
+  const [formData, setFormData] = useState(initialState);
+
+  // EFECTO PARA CALCULAR EDAD AUTOMÁTICAMENTE
+  useEffect(() => {
+    if (formData.fecha_nacimiento) {
+      const cumple = new Date(formData.fecha_nacimiento);
+      const hoy = new Date();
+      
+      let anos = hoy.getFullYear() - cumple.getFullYear();
+      let meses = hoy.getMonth() - cumple.getMonth();
+      let dias = hoy.getDate() - cumple.getDate();
+
+      if (dias < 0) {
+        meses--;
+        const ultimoDiaMesAnterior = new Date(hoy.getFullYear(), hoy.getMonth(), 0).getDate();
+        dias += ultimoDiaMesAnterior;
+      }
+      if (meses < 0) {
+        anos--;
+        meses += 12;
+      }
+
+      let resultado = "";
+      if (anos < 1) {
+        resultado = `${meses} M ${dias} D`;
+      } else {
+        resultado = `${anos} A ${meses} M`;
+      }
+      setFormData(prev => ({ ...prev, edad_formato: resultado }));
+    }
+  }, [formData.fecha_nacimiento]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // --- AQUÍ ESTABA EL ERROR: Faltaba definir esta función ---
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  if (!isOpen) return null; // Si no está abierta la modal, no renderiza nada
 
-    // 1. Verificación de Seguridad: Evita el error de Foreign Key en el servidor
-    if (!usuarioLogueado || !usuarioLogueado.id) {
-      console.error("DEBUG - Datos del usuario en el momento del error:", usuarioLogueado);
-      return toast.error("Error de sesión: No se detecta el ID del operador. Por favor, cierra sesión y vuelve a entrar.");
-    }
+  const labelStyle = "block text-[10px] font-bold text-slate-500 uppercase mb-1 ml-1";
+  const inputStyle = "w-full p-1.5 border rounded-lg focus:ring-2 focus:ring-blue-400 outline-none bg-white text-xs transition-all";
 
-    // 2. Validación de campos obligatorios
-    if (!formData.paciente_nombre || !formData.hospital_origen) {
-      return toast.error("Por favor, completa al menos el nombre del paciente y el hospital de origen.");
-    }
-
-    const loadingToast = toast.loading("Registrando solicitud en la base de datos...");
-
-    try {
-      // Preparamos el paquete de datos
-      const datosParaEnviar = {
-        ...formData,
-        id_operador_actual: usuarioLogueado.id // Este es el ID que el PHP usará para 'creado_por'
-      };
-
-      console.log("DEBUG - Enviando estos datos:", datosParaEnviar);
-
-      const response = await fetch(`${API_URL}/traslados.php`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json' 
-        },
-        body: JSON.stringify(datosParaEnviar)
-      });
-
-      // Verificamos si la respuesta es OK antes de intentar leer el JSON
-      if (!response.ok) {
-        const errorTexto = await response.text(); // Leemos el error del servidor (el 500)
-        throw new Error(errorTexto || "Error interno del servidor (500)");
-      }
-
-      const res = await response.json();
-
-      if (res.status === 'success') {
-        toast.success("¡Traslado registrado con éxito!", { id: loadingToast });
-        
-        // Limpiamos el formulario para un nuevo registro
-        setFormData({
-          paciente_nombre: '', paciente_apellido: '', paciente_sexo: 'Masculino',
-          fecha_nacimiento: '', domicilio: '', localidad: '',
-          hospital_origen: '', servicio_salud: '', solicitante_nombre: '', solicitante_cargo: '',
-          motivo_traslado: '', diagnosticos: '', codigo_triage: 'Verde', tipo_paciente: 'Adulto',
-          hospital_receptor: '', medico_traslado: '', enfermero_traslado: '',
-          aeronave_asignada: '', piloto_asignado: '', eta_despegue: ''
-        });
-      } else {
-        throw new Error(res.message || "Error desconocido al guardar");
-      }
-    } catch (error) {
-      console.error("Error detallado:", error);
-      toast.error("No se pudo guardar: " + error.message, { id: loadingToast, duration: 6000 });
-    }
-  };
-  
   return (
-    <div className="max-w-5xl mx-auto pb-10">
-      <div className="bg-white shadow-2xl rounded-3xl overflow-hidden border border-gray-100">
-        <div className="bg-gradient-to-r from-blue-600 to-blue-800 p-6 text-white">
-          <h2 className="text-2xl font-black flex items-center gap-3">
-            <ClipboardList size={30} /> GESTIÓN DE TRASLADOS
-          </h2>
-          <p className="opacity-80 text-sm">Registro de misiones aero-médicas</p>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+      <div className="bg-white w-full max-w-4xl max-h-[95vh] overflow-y-auto rounded-2xl shadow-2xl animate-in zoom-in-95 duration-200">
+        
+        {/* CABECERA MODAL */}
+        <div className="sticky top-0 z-10 bg-slate-800 p-4 text-white flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <ClipboardList size={20} className="text-blue-400" />
+            <h2 className="text-sm font-bold uppercase tracking-wider">Nuevo Registro de Traslado</h2>
+          </div>
+          <button onClick={onClose} className="hover:bg-white/10 p-1 rounded-full transition-colors">
+            <X size={20} />
+          </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-8 space-y-10">
+        <form className="p-5 space-y-5">
           
-          {/* SECCIÓN 1: FILIACIÓN */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 text-blue-700 font-bold border-b pb-2 uppercase text-sm tracking-wider">
-              <User size={18}/> Datos del Paciente
+          {/* GRUPO 1: IDENTIDAD Y EDAD */}
+          <section className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+            <div className="flex items-center gap-2 text-blue-700 font-bold uppercase text-[10px] mb-3">
+              <User size={12}/> Identificación del Paciente
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <input name="paciente_nombre" placeholder="Nombre" onChange={handleChange} className="p-3 bg-gray-50 border rounded-xl outline-none focus:ring-2 focus:ring-blue-400 transition-all" />
-              <input name="paciente_apellido" placeholder="Apellido" onChange={handleChange} className="p-3 bg-gray-50 border rounded-xl outline-none focus:ring-2 focus:ring-blue-400 transition-all" />
-              <select name="paciente_sexo" onChange={handleChange} className="p-3 bg-gray-50 border rounded-xl outline-none focus:ring-2 focus:ring-blue-400">
-                <option value="Masculino">Masculino</option>
-                <option value="Femenino">Femenino</option>
-                <option value="Otro">Otro</option>
-              </select>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-               <input type="date" name="fecha_nacimiento" onChange={handleChange} className="p-3 bg-gray-50 border rounded-xl outline-none" />
-               <input name="domicilio" placeholder="Domicilio" onChange={handleChange} className="p-3 bg-gray-50 border rounded-xl outline-none" />
-               <input name="localidad" placeholder="Localidad" onChange={handleChange} className="p-3 bg-gray-50 border rounded-xl outline-none" />
-            </div>
-          </div>
-
-          {/* SECCIÓN 2: DATOS MÉDICOS */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 text-red-600 font-bold border-b pb-2 uppercase text-sm tracking-wider">
-                <Stethoscope size={18}/> Evaluación Médica
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+              <div className="md:col-span-1">
+                <label className={labelStyle}>DNI</label>
+                <input name="paciente_dni" placeholder="Sin puntos" onChange={handleChange} value={formData.paciente_dni} className={inputStyle} />
               </div>
-              <select name="codigo_triage" onChange={handleChange} className="w-full p-3 border-2 rounded-xl font-black text-center focus:ring-0">
-                <option value="Verde" className="text-green-600">🟢 CÓDIGO VERDE</option>
-                <option value="Amarillo" className="text-yellow-600">🟡 CÓDIGO AMARILLO</option>
-                <option value="Rojo" className="text-red-600">🔴 CÓDIGO ROJO</option>
-              </select>
-              <textarea name="diagnosticos" placeholder="Diagnóstico y observaciones..." onChange={handleChange} className="w-full p-3 bg-gray-50 border rounded-xl h-28" />
-            </div>
-
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 text-blue-700 font-bold border-b pb-2 uppercase text-sm tracking-wider">
-                <MapPin size={18}/> Origen y Solicitante
+              <div className="md:col-span-1">
+                <label className={labelStyle}>Nombre</label>
+                <input name="paciente_nombre" onChange={handleChange} value={formData.paciente_nombre} className={inputStyle} />
               </div>
-              <input name="hospital_origen" placeholder="Hospital / Centro Emisor" onChange={handleChange} className="w-full p-3 bg-gray-50 border rounded-xl" />
-              <input name="solicitante_nombre" placeholder="Médico que solicita" onChange={handleChange} className="w-full p-3 bg-gray-50 border rounded-xl" />
-              <select name="tipo_paciente" onChange={handleChange} className="w-full p-3 bg-gray-50 border rounded-xl">
-                <option value="Adulto">Adulto</option>
-                <option value="Pediátrico">Pediátrico</option>
-                <option value="Neonato">Neonato</option>
-                <option value="Gestante">Gestante</option>
-              </select>
+              <div className="md:col-span-1">
+                <label className={labelStyle}>Apellido</label>
+                <input name="paciente_apellido" onChange={handleChange} value={formData.paciente_apellido} className={inputStyle} />
+              </div>
+              <div className="md:col-span-1">
+                <label className={labelStyle}>Nacimiento</label>
+                <input type="date" name="fecha_nacimiento" onChange={handleChange} value={formData.fecha_nacimiento} className={inputStyle} />
+              </div>
+              <div className="md:col-span-1">
+                <label className={labelStyle}>Edad Calc.</label>
+                <input name="edad_formato" value={formData.edad_formato} readOnly className={`${inputStyle} bg-blue-100 font-bold text-blue-700 border-blue-200`} />
+              </div>
+            </div>
+          </section>
+
+          {/* GRUPO 2: UBICACIÓN Y CLÍNICA */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-slate-700 font-bold uppercase text-[10px] border-b pb-1">
+                <MapPin size={12}/> Ubicación y Contacto
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className={labelStyle}>Localidad</label>
+                  <input name="localidad" placeholder="Buscar..." onChange={handleChange} value={formData.localidad} className={inputStyle} />
+                </div>
+                <div>
+                  <label className={labelStyle}>Domicilio</label>
+                  <input name="domicilio" placeholder="Calle y N°" onChange={handleChange} value={formData.domicilio} className={inputStyle} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className={labelStyle}>Origen</label>
+                  <input name="hospital_origen" placeholder="Hosp. Emisor" onChange={handleChange} value={formData.hospital_origen} className={inputStyle} />
+                </div>
+                <div>
+                  <label className={labelStyle}>Destino</label>
+                  <input name="hospital_receptor" placeholder="Hosp. Receptor" onChange={handleChange} value={formData.hospital_receptor} className={inputStyle} />
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-red-700 font-bold uppercase text-[10px] border-b pb-1">
+                <Stethoscope size={12}/> Triage y Diagnóstico
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <select name="codigo_triage" onChange={handleChange} value={formData.codigo_triage} className={`${inputStyle} font-bold`}>
+                  <option value="Verde">🟢 VERDE</option>
+                  <option value="Amarillo">🟡 AMARILLO</option>
+                  <option value="Rojo">🔴 ROJO</option>
+                </select>
+                <select name="tipo_paciente" onChange={handleChange} value={formData.tipo_paciente} className={inputStyle}>
+                  <option value="Adulto">Adulto</option>
+                  <option value="Pediátrico">Pediátrico</option>
+                  <option value="Neonatal">Neonatal</option>
+                </select>
+              </div>
+              <textarea name="diagnosticos" placeholder="Breve descripción del cuadro..." onChange={handleChange} value={formData.diagnosticos} className={`${inputStyle} h-[68px] resize-none`} />
             </div>
           </div>
 
-          {/* SECCIÓN 3: PLAN DE TRASLADO */}
-          <div className="bg-blue-50 p-6 rounded-3xl border border-blue-100 space-y-4">
-            <div className="flex items-center gap-2 text-blue-900 font-black uppercase text-sm tracking-wider">
-              <Plane size={20}/> Plan de Misión
+          {/* GRUPO 3: EQUIPO Y AERONAVE */}
+          <section className="bg-blue-50 p-3 rounded-xl border border-blue-100 space-y-3">
+            <div className="flex items-center gap-2 text-blue-900 font-bold uppercase text-[10px] border-b border-blue-200 pb-1">
+              <Plane size={12}/> Misión Aero-médica
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-               <input name="hospital_receptor" placeholder="Hospital Receptor" onChange={handleChange} className="p-3 bg-white border rounded-xl" />
-               <input name="aeronave_asignada" placeholder="Matrícula Aeronave" onChange={handleChange} className="p-3 bg-white border rounded-xl" />
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div>
+                <label className={labelStyle}>Matrícula</label>
+                <input name="aeronave_asignada" placeholder="LV-..." onChange={handleChange} value={formData.aeronave_asignada} className={inputStyle} />
+              </div>
+              <div>
+                <label className={labelStyle}>Médico</label>
+                <input name="medico_traslado" onChange={handleChange} value={formData.medico_traslado} className={inputStyle} />
+              </div>
+              <div>
+                <label className={labelStyle}>Enfermero</label>
+                <input name="enfermero_traslado" onChange={handleChange} value={formData.enfermero_traslado} className={inputStyle} />
+              </div>
+              <div>
+                <label className={labelStyle}>ETD/ETA</label>
+                <input type="datetime-local" name="eta_despegue" onChange={handleChange} value={formData.eta_despegue} className={inputStyle} />
+              </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-               <input name="piloto_asignado" placeholder="Piloto" onChange={handleChange} className="p-3 bg-white border rounded-xl" />
-               <input type="datetime-local" name="eta_despegue" onChange={handleChange} className="p-3 bg-white border rounded-xl" />
-            </div>
-          </div>
+          </section>
 
-          <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-5 rounded-2xl shadow-xl transition-all flex items-center justify-center gap-3 transform hover:-translate-y-1">
-            <Save size={24} /> GUARDAR REGISTRO DE TRASLADO
-          </button>
+          <div className="flex gap-2 pt-2">
+            <button type="button" onClick={onClose} className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-2 rounded-lg text-xs transition-all">
+              CANCELAR
+            </button>
+            <button type="submit" className="flex-[2] bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded-lg text-xs shadow-md transition-all flex items-center justify-center gap-2">
+              <Save size={14} /> GUARDAR REGISTRO
+            </button>
+          </div>
         </form>
       </div>
     </div>

@@ -28,7 +28,7 @@ const MenuInicio = ({ usuario, setVistaActual }) => {
 
         {/* BOTÓN COORDINADOR Y ADMIN - GESTIÓN DE VUELOS */}
         {(usuario.rol === 'Coordinador' || usuario.rol === 'Administrador') && (
-          <button onClick={() => setVistaActual('supervision')} className="bg-white p-10 rounded-[35px] shadow-sm border border-gray-100 hover:shadow-2xl hover:border-blue-200 transition-all text-left group">
+          <button onClick={() => setVistaActual('Coordinador')} className="bg-white p-10 rounded-[35px] shadow-sm border border-gray-100 hover:shadow-2xl hover:border-blue-200 transition-all text-left group">
             <div className="bg-green-50 w-16 h-16 rounded-2xl flex items-center justify-center text-green-600 mb-6 group-hover:bg-green-600 group-hover:text-white transition-all">
               <Plane size={32} />
             </div>
